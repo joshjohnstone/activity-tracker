@@ -1,103 +1,19 @@
-from flask import Flask, render_template, request
 from datetime import date
 import sqlite3
 import json
 from datetime import date, datetime, timedelta
-from flask import Flask, render_template, request, redirect
+from flask import Blueprint, render_template, request, redirect
 from collections import defaultdict
+from app.db import get_db
+from app.constants import EXERCISE_CATEGORIES, DISPLAY_FIELDS
 
-app = Flask(__name__)
+bp = Blueprint("main", __name__)
 
-DISPLAY_FIELDS = {
-    "Running": ["distance", "duration", "pace", "run_location"],
-    "Strength": ["exercise", "sets"],
-    "Mobility": ["mobility_duration", "notes"]
-}
-
-DEFAULT_EXERCISES = [
-    ("Squat", "Legs"),
-    ("Back Squat", "Legs"),
-    ("Deadlift", "Pull"),
-    ("Romanian Deadlift", "Legs"),
-    ("Bench Press", "Push"),
-    ("Incline Bench Press", "Push"),
-    ("Overhead Press", "Shoulders"),
-    ("Pull-Up", "Pull"),
-    ("Chin-Up", "Pull"),
-    ("Barbell Row", "Pull"),
-    ("Dumbbell Bench Press", "Push"),
-    ("Dumbbell Row", "Pull"),
-    ("Cable Face Pull", "Pull"),
-    ("Cable Row", "Pull"),
-    ("Cable Pull-Down", "Pull"),
-    ("Lunges", "Legs"),
-    ("Leg Press", "Legs"),
-    ("Hip Thrust", "Legs"),
-    ("Bulgarian Split Squat", "Legs"),
-    ("Landmine Hack Squat", "Legs"),
-    ("Machine Leg Curl", "Legs"),
-    ("Machine Leg Extension", "Legs"),
-    ("Cable Chest Fly", "Push"),
-    ("Tricep Cable Pull-Down", "Arms"),
-    ("Overhead Tricep Dumbbell Extension", "Arms"),
-    ("Dumbbell Forward Raise", "Arms"),
-    ("Dumbbell Lateral Raise", "Arms"),
-    ("Dumbbell Hammer Curl", "Arms"),
-    ("Dumbbell Concentration Curl", "Arms")
-]
-
-EXERCISE_CATEGORIES = [
-    "Push",
-    "Pull",
-    "Legs",
-    "Core",
-    "Shoulders",
-    "Arms",
-    "Full Body"
-]
-
-def seed_exercises(cur):
-    for name, category in DEFAULT_EXERCISES:
-        cur.execute(
-            """
-            INSERT OR IGNORE INTO exercises (name, category)
-            VALUES (?, ?)
-            """,
-            (name, category)
-        )
-
-def init_db():
-    conn = sqlite3.connect("activities.db")
-    cur = conn.cursor()
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS activities (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT NOT NULL,
-            category TEXT NOT NULL,
-            details TEXT NOT NULL
-        )
-    """)
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS exercises (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE NOT NULL,
-        category TEXT
-    )
-    """)
-
-    seed_exercises(cur)
-
-    conn.commit()
-    conn.close()
-
-
-@app.route("/")
+@bp.route("/")
 def home():
     today = date.today().isoformat()
 
-    conn = sqlite3.connect("activities.db")
+    conn = get_db()
     conn.row_factory = sqlite3.Row
 
     cur = conn.cursor()
@@ -120,7 +36,7 @@ def home():
     )
 
 
-@app.route("/submit", methods=["POST"])
+@bp.route("/submit", methods=["POST"])
 def submit():
 
     form = request.form.to_dict()
@@ -183,7 +99,7 @@ def submit():
     # Convert remaining fields into JSON
     details_json = json.dumps(details)
 
-    conn = sqlite3.connect("activities.db")
+    conn = get_db()
     cur = conn.cursor()
 
     cur.execute("""
@@ -200,24 +116,14 @@ def submit():
     <a href="/">Back</a>
     """
 
-def format_pace(pace):
-    if not pace:
-        return None
-
-    minutes = int(pace)
-    seconds = int(round((pace - minutes) * 60))
-
-    return f"{minutes}:{seconds:02d} / mi"
-app.jinja_env.globals.update(format_pace=format_pace)
-
-@app.route("/history")
+@bp.route("/history")
 def history():
 
     category = request.args.get("category")
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
 
-    conn = sqlite3.connect("activities.db")
+    conn = get_db()
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
@@ -328,7 +234,7 @@ def history():
         end_date=end_date
     )
 
-@app.route("/analytics")
+@bp.route("/analytics")
 def analytics():
 
     exercise_volume = {}
@@ -341,7 +247,7 @@ def analytics():
     days_since_sunday = (today.weekday() + 1) % 7
     start_of_week = today - timedelta(days=days_since_sunday)
 
-    conn = sqlite3.connect("activities.db")
+    conn = get_db()
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
@@ -419,9 +325,6 @@ def analytics():
 
     exercise_list = sorted(list(exercise_set))
 
-    print(exercise_set)
-    print(exercise_list)
-
     return render_template(
         "analytics.html",
         category_counts=category_counts,
@@ -434,10 +337,10 @@ def analytics():
     )
 
 
-@app.route("/exercises")
+@bp.route("/exercises")
 def exercises():
 
-    conn = sqlite3.connect("activities.db")
+    conn = get_db()
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
@@ -457,13 +360,13 @@ def exercises():
         EXERCISE_CATEGORIES=EXERCISE_CATEGORIES
     )
 
-@app.route("/add_exercise", methods=["POST"])
+@bp.route("/add_exercise", methods=["POST"])
 def add_exercise():
 
     name = request.form.get("name")
     category = request.form.get("category")
 
-    conn = sqlite3.connect("activities.db")
+    conn = get_db()
     cur = conn.cursor()
 
     cur.execute(
@@ -476,10 +379,10 @@ def add_exercise():
 
     return redirect("/exercises")
 
-@app.route("/delete_exercise/<int:id>")
+@bp.route("/delete_exercise/<int:id>")
 def delete_exercise(id):
 
-    conn = sqlite3.connect("activities.db")
+    conn = get_db()
     cur = conn.cursor()
 
     cur.execute(
@@ -491,7 +394,3 @@ def delete_exercise(id):
     conn.close()
 
     return redirect("/exercises")
-
-init_db()
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
