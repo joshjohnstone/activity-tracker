@@ -453,7 +453,8 @@ def exercises():
 
     return render_template(
         "exercises.html",
-        exercises=exercises
+        exercises=exercises,
+        EXERCISE_CATEGORIES=EXERCISE_CATEGORIES
     )
 
 @app.route("/add_exercise", methods=["POST"])
