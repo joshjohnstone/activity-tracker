@@ -4,8 +4,9 @@ import json
 from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request, redirect
 from collections import defaultdict
-from app.db import get_db
+from app.database import get_db
 from app.constants import EXERCISE_CATEGORIES, DISPLAY_FIELDS
+from app.models import db, Exercise
 
 bp = Blueprint("main", __name__)
 
@@ -339,20 +340,11 @@ def analytics():
 
 @bp.route("/exercises")
 def exercises():
-
-    conn = get_db()
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT *
-        FROM exercises
-        ORDER BY name
-    """)
-
-    exercises = cur.fetchall()
-
-    conn.close()
+    exercises = (
+        Exercise.query
+        .order_by(Exercise.name)
+        .all()
+    )   
 
     return render_template(
         "exercises.html",
@@ -366,31 +358,22 @@ def add_exercise():
     name = request.form.get("name")
     category = request.form.get("category")
 
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute(
-        "INSERT OR IGNORE INTO exercises (name, category) VALUES (?, ?)",
-        (name, category)
+    exercise = Exercise(
+        name=name,
+        category=category
     )
 
-    conn.commit()
-    conn.close()
+    db.session.add(exercise)
+    db.session.commit()
 
     return redirect("/exercises")
 
 @bp.route("/delete_exercise/<int:id>")
 def delete_exercise(id):
 
-    conn = get_db()
-    cur = conn.cursor()
+    exercise = Exercise.query.get_or_404(id)
 
-    cur.execute(
-        "DELETE FROM exercises WHERE id = ?",
-        (id,)
-    )
-
-    conn.commit()
-    conn.close()
+    db.session.delete(exercise)
+    db.session.commit()
 
     return redirect("/exercises")

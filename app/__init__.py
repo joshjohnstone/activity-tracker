@@ -1,6 +1,7 @@
 from flask import Flask
 from app.utils import format_pace
 import os
+from app.models import db
 
 def create_app():
 
@@ -14,6 +15,20 @@ def create_app():
 
     # configuration will go here later (Postgres, secret key, etc.)
     app.config["SECRET_KEY"] = "dev"
+
+    db_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "activities.db"
+    )
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    db.init_app(app)
+
+    with app.app_context():
+        db.create_all()
 
     # register routes
     from app.routes import bp
