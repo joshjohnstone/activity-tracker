@@ -14,6 +14,58 @@ DISPLAY_FIELDS = {
     "Mobility": ["mobility_duration", "notes"]
 }
 
+DEFAULT_EXERCISES = [
+    ("Squat", "Legs"),
+    ("Back Squat", "Legs"),
+    ("Deadlift", "Pull"),
+    ("Romanian Deadlift", "Legs"),
+    ("Bench Press", "Push"),
+    ("Incline Bench Press", "Push"),
+    ("Overhead Press", "Shoulders"),
+    ("Pull-Up", "Pull"),
+    ("Chin-Up", "Pull"),
+    ("Barbell Row", "Pull"),
+    ("Dumbbell Bench Press", "Push"),
+    ("Dumbbell Row", "Pull"),
+    ("Cable Face Pull", "Pull"),
+    ("Cable Row", "Pull"),
+    ("Cable Pull-Down", "Pull"),
+    ("Lunges", "Legs"),
+    ("Leg Press", "Legs"),
+    ("Hip Thrust", "Legs"),
+    ("Bulgarian Split Squat", "Legs"),
+    ("Landmine Hack Squat", "Legs"),
+    ("Machine Leg Curl", "Legs"),
+    ("Machine Leg Extension", "Legs"),
+    ("Cable Chest Fly", "Push"),
+    ("Tricep Cable Pull-Down", "Arms"),
+    ("Overhead Tricep Dumbbell Extension", "Arms"),
+    ("Dumbbell Forward Raise", "Arms"),
+    ("Dumbbell Lateral Raise", "Arms"),
+    ("Dumbbell Hammer Curl", "Arms"),
+    ("Dumbbell Concentration Curl", "Arms")
+]
+
+EXERCISE_CATEGORIES = [
+    "Push",
+    "Pull",
+    "Legs",
+    "Core",
+    "Shoulders",
+    "Arms",
+    "Full Body"
+]
+
+def seed_exercises(cur):
+    for name, category in DEFAULT_EXERCISES:
+        cur.execute(
+            """
+            INSERT OR IGNORE INTO exercises (name, category)
+            VALUES (?, ?)
+            """,
+            (name, category)
+        )
+
 def init_db():
     conn = sqlite3.connect("activities.db")
     cur = conn.cursor()
@@ -30,9 +82,12 @@ def init_db():
     cur.execute("""
     CREATE TABLE IF NOT EXISTS exercises (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE NOT NULL
+        name TEXT UNIQUE NOT NULL,
+        category TEXT
     )
     """)
+
+    seed_exercises(cur)
 
     conn.commit()
     conn.close()
@@ -57,7 +112,12 @@ def home():
 
     conn.close()
 
-    return render_template("index.html", today=today, exercises=exercises)
+    return render_template(
+        "index.html", 
+        today=today, 
+        exercises=exercises,
+        EXERCISE_CATEGORIES=EXERCISE_CATEGORIES
+    )
 
 
 @app.route("/submit", methods=["POST"])
@@ -108,7 +168,7 @@ def submit():
             details = {
                 "distance": distance,
                 "duration": duration,
-                "pace": f"{pace:.2f} min/mile" if pace else None
+                "pace": pace 
             }
 
         except ValueError:
@@ -139,6 +199,16 @@ def submit():
     <p>Stored {category} activity on {activity_date}</p>
     <a href="/">Back</a>
     """
+
+def format_pace(pace):
+    if not pace:
+        return None
+
+    minutes = int(pace)
+    seconds = int(round((pace - minutes) * 60))
+
+    return f"{minutes}:{seconds:02d} / mi"
+app.jinja_env.globals.update(format_pace=format_pace)
 
 @app.route("/history")
 def history():
@@ -389,23 +459,19 @@ def exercises():
 @app.route("/add_exercise", methods=["POST"])
 def add_exercise():
 
-    name = request.form.get("name", "").strip()
+    name = request.form.get("name")
+    category = request.form.get("category")
 
-    if name:
+    conn = sqlite3.connect("activities.db")
+    cur = conn.cursor()
 
-        conn = sqlite3.connect("activities.db")
-        cur = conn.cursor()
+    cur.execute(
+        "INSERT OR IGNORE INTO exercises (name, category) VALUES (?, ?)",
+        (name, category)
+    )
 
-        cur.execute(
-            """
-            INSERT OR IGNORE INTO exercises (name)
-            VALUES (?)
-            """,
-            (name,)
-        )
-
-        conn.commit()
-        conn.close()
+    conn.commit()
+    conn.close()
 
     return redirect("/exercises")
 

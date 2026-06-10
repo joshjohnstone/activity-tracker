@@ -79,11 +79,23 @@
             <label for="exercise">Exercise:</label>
 
             <select id="exercise" name="exercise" required>
-                {% for exercise in exercises %}
-                    <option value="{{ exercise['name'] }}">
-                        {{ exercise['name'] }}
-                    </option>
+
+                {% for category in EXERCISE_CATEGORIES %}
+
+                    <optgroup label="{{ category }}">
+
+                        {% for exercise in exercises %}
+                            {% if exercise.category == category %}
+                                <option value="{{ exercise.name }}">
+                                    {{ exercise.name }}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+
+                    </optgroup>
+
                 {% endfor %}
+
             </select>
 
             <br><br>

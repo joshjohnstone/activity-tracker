@@ -20,17 +20,22 @@
 
 <h2>Add Exercise</h2>
 
-<form action="/add_exercise" method="POST">
+<form method="POST" action="/add_exercise">
 
-    <input
-        type="text"
-        name="name"
-        placeholder="Exercise name"
-        required>
+    <label for="name">Exercise Name:</label>
+    <input type="text" name="name" required>
 
-    <button type="submit">
-        Add Exercise
-    </button>
+    <label for="category">Category:</label>
+
+    <select name="category" required>
+        <option value="" disabled selected>Select category</option>
+
+        {% for category in EXERCISE_CATEGORIES %}
+            <option value="{{ category }}">{{ category }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Add Exercise</button>
 
 </form>
 
@@ -39,13 +44,18 @@
 <ul class="exercise-list">
 {% for exercise in exercises %}
     <li class="exercise-item">
-        <span class="exercise-name">{{ exercise["name"] }}</span>
+
+        <div class="exercise-info">
+            <strong class="exercise-name">{{ exercise["name"] }}</strong>
+            <span class="exercise-category">({{ exercise.category }})</span>
+        </div>
 
         <a class="delete-btn"
-           href="/delete_exercise/{{ exercise['id'] }}"
-           onclick="return confirm('Delete this exercise?');">
+        href="/delete_exercise/{{ exercise['id'] }}"
+        onclick="return confirm('Delete this exercise?');">
             Delete
         </a>
+
     </li>
 {% endfor %}
 </ul>

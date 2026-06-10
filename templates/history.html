@@ -89,7 +89,16 @@
                     <div class="history-details">
 
                         {% if entry.category == "Running" %}
-                            {{ entry.details.distance }} miles
+                            <div class="running-entry">
+
+                                {{ entry.details.distance }} miles
+                                • {{ entry.details.duration }} min
+
+                                {% if entry.details.pace %}
+                                    • {{ format_pace(entry.details.pace) }}
+                                {% endif %}
+
+                            </div>
 
                         {% elif entry.category == "Strength" %}
 

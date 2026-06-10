@@ -102,14 +102,25 @@ td {
 
 .exercise-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
+    justify-content: space-between;
+    padding: 6px 0;
+    gap: 10px;
 }
 
 .exercise-name {
     font-weight: 500;
+}
+
+.exercise-info {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.exercise-category {
+    color: #777;
+    font-size: 0.9em;
 }
 
 .delete-btn {
@@ -166,6 +177,16 @@ td {
 
 .day-content {
     margin-top: 10px;
+}
+
+.running-entry {
+    font-variant-numeric: tabular-nums;
+}
+
+.exercise-category {
+    color: #777;
+    font-size: 0.9em;
+    margin-left: 6px;
 }
 
 /* Mobile tweaks */
