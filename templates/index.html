@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
+    <title>Activity Tracker</title>
+</head>
+<body>
+
+    <h1>Activity Tracker</h1>
+
+    <div class="nav">
+        <a href="/">Log Activity</a>
+        <a href="/history">History</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/exercises">Exercises</a>
+    </div>
+
+    <h2>New Activity</h2>
+
+    <form action="/submit" method="POST">
+
+        <!-- DATE -->
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date" value="{{ today }}">
+
+        <br><br>
+
+        <!-- CATEGORY -->
+        <label for="category">Category:</label>
+        <select id="category" name="category">
+            <option value="Running">Running</option>
+            <option value="Strength">Strength Training</option>
+            <option value="Mobility">Mobility</option>
+        </select>
+
+        <br><br>
+
+        <!-- RUNNING FIELDS -->
+        <div id="running-fields" class="section">
+            <h3>Running</h3>
+
+            <label>Location Type:</label>
+            <br>
+
+            <div class="radio-group">
+
+                <label>
+                    <input type="radio" name="run_location" value="Outdoors">
+                    Outdoors
+                </label>
+
+                <label>
+                    <input type="radio" name="run_location" value="Treadmill">
+                    Treadmill
+                </label>
+
+            </div>
+
+            <br><br>
+
+            <label>Distance (miles):</label>
+            <input type="number" step="0.01" name="distance">
+
+            <br><br>
+
+            <label>Duration (min):</label>
+            <input type="number" name="duration">
+        </div>
+
+        <!-- STRENGTH FIELDS -->
+        <div id="strength-fields" class="section">
+
+            <h3>Strength Training</h3>
+
+            <label for="exercise">Exercise:</label>
+
+            <select id="exercise" name="exercise" required>
+                {% for exercise in exercises %}
+                    <option value="{{ exercise['name'] }}">
+                        {{ exercise['name'] }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <br><br>
+
+            <h4>Sets</h4>
+
+            <div>
+                Set 1:
+                <input type="number" name="reps_1" placeholder="reps">
+                <input type="number" name="weight_1" placeholder="weight">
+            </div>
+
+            <div>
+                Set 2:
+                <input type="number" name="reps_2" placeholder="reps">
+                <input type="number" name="weight_2" placeholder="weight">
+            </div>
+
+            <div>
+                Set 3:
+                <input type="number" name="reps_3" placeholder="reps">
+                <input type="number" name="weight_3" placeholder="weight">
+            </div>
+
+        </div>
+
+        <!-- MOBILITY FIELDS -->
+        <div id="mobility-fields" class="section">
+            <h3>Mobility</h3>
+
+            <label>Duration (min):</label>
+            <input type="number" name="mobility_duration">
+
+            <br><br>
+
+            <label>Notes:</label>
+            <input type="text" name="notes">
+        </div>
+
+        <br>
+
+        <button type="submit">Submit</button>
+
+    </form>
+
+</body>
+</html>
+
+<script>
+function updateForm() {
+    const category = document.getElementById("category").value;
+
+    const running = document.getElementById("running-fields");
+    const strength = document.getElementById("strength-fields");
+    const mobility = document.getElementById("mobility-fields");
+
+    // Hide everything first
+    running.style.display = "none";
+    strength.style.display = "none";
+    mobility.style.display = "none";
+
+    // Show relevant section
+    if (category === "Running") {
+        running.style.display = "block";
+    } else if (category === "Strength") {
+        strength.style.display = "block";
+    } else if (category === "Mobility") {
+        mobility.style.display = "block";
+    }
+}
+
+// Run on dropdown change
+document.getElementById("category").addEventListener("change", updateForm);
+
+// Run once on page load
+updateForm();
+</script>
+
+<script>
+const select = document.getElementById("exercise");
+
+// store original options
+const allOptions = Array.from(select.options).map(opt => ({
+    value: opt.value,
+    text: opt.text
+}));
+
+select.addEventListener("input", function (e) {
+    const query = select.value.toLowerCase();
+
+    // clear options
+    select.innerHTML = "";
+
+    // filter matches
+    const filtered = allOptions.filter(opt =>
+        opt.text.toLowerCase().includes(query)
+    );
+
+    // rebuild options
+    filtered.forEach(opt => {
+        const option = document.createElement("option");
+        option.value = opt.value;
+        option.text = opt.text;
+        select.appendChild(option);
+    });
+});
+</script>

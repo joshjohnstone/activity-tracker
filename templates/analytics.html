@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <title>Analytics</title>
+</head>
+<body>
+
+    <h1>Training Analytics</h1>
+
+    <div class="nav">
+        <a href="/">Log Activity</a>
+        <a href="/history">History</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/exercises">Exercises</a>
+    </div>
+
+    <hr>
+
+    <h2>Strength Progress by Exercise</h2>
+
+    <select id="exerciseSelect">
+        {% for ex in exercise_list %}
+            <option value="{{ ex }}">{{ ex }}</option>
+        {% endfor %}
+    </select>
+
+    <canvas id="exerciseChart"></canvas>
+
+    <script>
+    const exerciseData = {{ exercise_time_series | tojson | safe }};
+    </script>
+
+    <script>
+    let chart;
+
+    function buildChart(exercise) {
+        const raw = exerciseData[exercise] || {};
+
+        const labels = Object.keys(raw).sort();
+        const values = labels.map(d => raw[d]);
+
+        const ctx = document.getElementById("exerciseChart").getContext("2d");
+
+        if (chart) {
+            chart.destroy();
+        }
+
+        chart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: exercise + " Volume",
+                    data: values,
+                    borderWidth: 2,
+                    fill: false
+                }]
+            }
+        });
+    }
+
+    document.getElementById("exerciseSelect").addEventListener("change", function() {
+        buildChart(this.value);
+    });
+
+    // initial render
+    buildChart(document.getElementById("exerciseSelect").value);
+    </script>
+
+
+
+    <h2>Strength Progress Over Time</h2>
+
+    {% for exercise, series in exercise_time_series.items() %}
+
+        <h3>{{ exercise }}</h3>
+
+        <ul>
+            {% for date, volume in series.items() %}
+                <li>{{ date }} → {{ volume }} lbs</li>
+            {% endfor %}
+        </ul>
+
+    {% endfor %}
+
+
+    <h2>Workouts by Category</h2>
+
+    <ul>
+        <li>Running: {{ category_counts["Running"] }}</li>
+        <li>Strength: {{ category_counts["Strength"] }}</li>
+        <li>Mobility: {{ category_counts["Mobility"] }}</li>
+    </ul>
+
+    <hr>
+
+    <h2>Strength Volume (This Week)</h2>
+
+    <p>
+        {{ weekly_strength_volume }} lbs (sets × reps × weight)
+    </p>
+
+    <hr>
+
+    <h2>Running (by date)</h2>
+
+    <ul>
+        {% for date, distance in weekly_running.items() %}
+            <li>{{ date }}: {{ distance }} miles</li>
+        {% endfor %}
+    </ul>
+
+
+</body>
+</html>

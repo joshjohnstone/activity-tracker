@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exercises</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="nav">
+    <a href="/">Log Activity</a>
+    <a href="/history">History</a>
+    <a href="/analytics">Analytics</a>
+    <a href="/exercises">Exercises</a>
+</div>
+
+<h2>Add Exercise</h2>
+
+<form action="/add_exercise" method="POST">
+
+    <input
+        type="text"
+        name="name"
+        placeholder="Exercise name"
+        required>
+
+    <button type="submit">
+        Add Exercise
+    </button>
+
+</form>
+
+<h1>Exercises</h1>
+
+<ul class="exercise-list">
+{% for exercise in exercises %}
+    <li class="exercise-item">
+        <span class="exercise-name">{{ exercise["name"] }}</span>
+
+        <a class="delete-btn"
+           href="/delete_exercise/{{ exercise['id'] }}"
+           onclick="return confirm('Delete this exercise?');">
+            Delete
+        </a>
+    </li>
+{% endfor %}
+</ul>
+
+</body>
+</html>

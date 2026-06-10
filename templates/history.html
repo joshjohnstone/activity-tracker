@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <title>Activity History</title>
+</head>
+<body>
+
+    <h1>Activity History</h1>
+
+    <div class="nav">
+        <a href="/">Log Activity</a>
+        <a href="/history">History</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/exercises">Exercises</a>
+    </div>
+
+    <hr>
+
+    <form method="GET" action="/history">
+
+        <h3>Filters</h3>
+
+        <!-- CATEGORY FILTER -->
+        <label>Category:</label>
+        <select name="category">
+
+            <option value="All">All</option>
+
+            <option value="Running"
+                {% if category == "Running" %}selected{% endif %}>
+                Running
+            </option>
+
+            <option value="Strength"
+                {% if category == "Strength" %}selected{% endif %}>
+                Strength
+            </option>
+
+            <option value="Mobility"
+                {% if category == "Mobility" %}selected{% endif %}>
+                Mobility
+            </option>
+
+        </select>
+
+        <br><br>
+
+        <!-- DATE RANGE -->
+        <label>Start Date:</label>
+        <input type="date" name="start_date" value="{{ start_date or '' }}">
+
+        <br><br>
+
+        <label>End Date:</label>
+        <input type="date" name="end_date" value="{{ end_date or '' }}">
+
+        <br><br>
+
+        <button type="submit">Apply Filters</button>
+
+        <a href="/history">Reset</a>
+
+    </form>
+
+    <hr>
+
+    {% for date, day in grouped.items() %}
+
+        <div style="margin-bottom: 35px;">
+
+            <h2>{{ date }}</h2>
+
+            <!-- DAILY SUMMARY -->
+            <div style="padding: 10px; background-color: #f2f2f2; margin-bottom: 15px;">
+
+                <strong>Summary</strong>
+
+                <ul>
+                    <li>Running: {{ day.summary.running_distance }} miles</li>
+                    <li>Strength: {{ day.summary.strength_volume }} lbs volume</li>
+                    <li>Mobility: {{ day.summary.mobility_minutes }} min</li>
+
+                    <li>
+                        Count —
+                        R: {{ day.summary.counts["Running"] }},
+                        S: {{ day.summary.counts["Strength"] }},
+                        M: {{ day.summary.counts["Mobility"] }}
+                    </li>
+                </ul>
+
+            </div>
+
+            <!-- ACTIVITIES -->
+            {% for activity in day.activities %}
+
+                <div style="margin-left: 20px; margin-bottom: 10px;">
+
+                    <strong>{{ activity.category }}</strong>
+
+                    <ul>
+                    {% for key, value in activity.details.items() %}
+
+                        {% if key == "sets" %}
+
+                            <li>
+                                <b>Sets:</b>
+                                <ul>
+                                    {% for s in value %}
+                                        <li>
+                                            {{ s.reps }} reps @ {{ s.weight }} lbs
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </li>
+
+                        {% else %}
+
+                            <li><b>{{ key }}:</b> {{ value }}</li>
+
+                        {% endif %}
+
+                    {% endfor %}
+                    </ul>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    {% endfor %}
+</body>
+</html>

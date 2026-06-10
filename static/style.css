@@ -1,0 +1,135 @@
+/* Overall page */
+
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+    line-height: 1.4;
+}
+
+/* Headings */
+
+h1 {
+    text-align: center;
+}
+
+h2 {
+    margin-top: 30px;
+}
+
+/* Navigation links */
+
+.nav {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.nav a {
+    margin: 0 10px;
+}
+
+/* Form labels */
+
+label {
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+/* Inputs */
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select,
+textarea,
+button {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    font-size: 16px;
+}
+
+/* Buttons */
+
+button {
+    margin-top: 20px;
+    cursor: pointer;
+}
+
+/* Section cards */
+
+.section {
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+/* Radio groups */
+
+input[type="radio"] {
+    width: auto;
+    margin: 0;
+}
+
+.radio-group {
+    display: flex;
+    gap: 20px;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: normal;
+}
+
+/* Tables (future-proofing) */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    border: 1px solid #cccccc;
+    padding: 8px;
+}
+
+.exercise-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.exercise-name {
+    font-weight: 500;
+}
+
+.delete-btn {
+    color: #b00020;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+/* Mobile tweaks */
+
+@media (max-width: 600px) {
+
+    body {
+        padding: 12px;
+    }
+
+    input,
+    select,
+    button,
+    textarea {
+        font-size: 18px;
+    }
+}
