@@ -72,61 +72,48 @@
 
     {% for date, day in grouped.items() %}
 
-        <div style="margin-bottom: 35px;">
+    <div class="history-day">
 
-            <h2>{{ date }}</h2>
+        <h2 class="history-date toggle-header" onclick="toggleDay(this)">
+            {{ day.weekday }} — {{ date }}
+        </h2>
 
-            <!-- DAILY SUMMARY -->
-            <div style="padding: 10px; background-color: #f2f2f2; margin-bottom: 15px;">
+        <div class="day-content">
 
-                <strong>Summary</strong>
+            {% for entry in day.activities %}
 
-                <ul>
-                    <li>Running: {{ day.summary.running_distance }} miles</li>
-                    <li>Strength: {{ day.summary.strength_volume }} lbs volume</li>
-                    <li>Mobility: {{ day.summary.mobility_minutes }} min</li>
+                <div class="history-entry">
 
-                    <li>
-                        Count —
-                        R: {{ day.summary.counts["Running"] }},
-                        S: {{ day.summary.counts["Strength"] }},
-                        M: {{ day.summary.counts["Mobility"] }}
-                    </li>
-                </ul>
+                    <strong>{{ entry.category }}</strong>
 
-            </div>
+                    <div class="history-details">
 
-            <!-- ACTIVITIES -->
-            {% for activity in day.activities %}
+                        {% if entry.category == "Running" %}
+                            {{ entry.details.distance }} miles
 
-                <div style="margin-left: 20px; margin-bottom: 10px;">
+                        {% elif entry.category == "Strength" %}
 
-                    <strong>{{ activity.category }}</strong>
+                            <div class="exercise-name">
+                                {{ entry.details.exercise }}
+                            </div>
 
-                    <ul>
-                    {% for key, value in activity.details.items() %}
+                            <div class="set-list">
 
-                        {% if key == "sets" %}
+                                {% for s in entry.details.sets %}
 
-                            <li>
-                                <b>Sets:</b>
-                                <ul>
-                                    {% for s in value %}
-                                        <li>
-                                            {{ s.reps }} reps @ {{ s.weight }} lbs
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </li>
+                                    <div class="set-row">
+                                        {{ s.reps }} reps × {{ s.weight }} lbs
+                                    </div>
 
-                        {% else %}
+                                {% endfor %}
 
-                            <li><b>{{ key }}:</b> {{ value }}</li>
+                            </div>
 
+                        {% elif entry.category == "Mobility" %}
+                            {{ entry.details.duration }} min
                         {% endif %}
 
-                    {% endfor %}
-                    </ul>
+                    </div>
 
                 </div>
 
@@ -134,6 +121,16 @@
 
         </div>
 
+    </div>
+
     {% endfor %}
 </body>
 </html>
+
+<script>
+function toggleDay(header) {
+    const content = header.nextElementSibling;
+    content.style.display =
+        content.style.display === "none" ? "block" : "none";
+}
+</script>

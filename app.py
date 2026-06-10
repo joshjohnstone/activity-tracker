@@ -4,6 +4,7 @@ import sqlite3
 import json
 from datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, redirect
+from collections import defaultdict
 
 app = Flask(__name__)
 
@@ -176,9 +177,10 @@ def history():
 
     for row in rows:
 
+        date_key = row["date"]
         category = row["category"]
         details = json.loads(row["details"])
-        date_key = row["date"]
+        weekday = datetime.strptime(date_key, "%Y-%m-%d").strftime("%A")
 
         # Apply display filter
         allowed_fields = DISPLAY_FIELDS.get(category, [])
@@ -196,6 +198,8 @@ def history():
         # Initialize day if needed
         if date_key not in grouped:
             grouped[date_key] = {
+                "date": date_key,
+                "weekday": weekday,
                 "activities": [],
                 "summary": {
                     "running_distance": 0.0,
@@ -214,7 +218,6 @@ def history():
         day["activities"].append(activity)
 
         # ---- SUMMARY LOGIC ----
-
         day["summary"]["counts"][category] += 1
 
         if category == "Running":
@@ -242,9 +245,14 @@ def history():
             except ValueError:
                 pass
 
+    # ---- SORT DAYS (important for consistent display) ----
+    grouped_sorted = dict(
+        sorted(grouped.items(), reverse=True)
+    )
+
     return render_template(
         "history.html",
-        grouped=grouped,
+        grouped=grouped_sorted,
         category=category,
         start_date=start_date,
         end_date=end_date

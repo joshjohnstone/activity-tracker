@@ -118,6 +118,56 @@ td {
     font-size: 14px;
 }
 
+.history-day {
+    margin-bottom: 25px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.history-date {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.history-entry {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+}
+
+.history-entry strong {
+    font-weight: 600;
+}
+
+.history-details {
+    color: #555;
+    text-align: right;
+}
+
+.set-list {
+    margin-top: 4px;
+    margin-left: 10px;
+    color: #555;
+    font-size: 14px;
+}
+
+.set-row {
+    padding: 2px 0;
+}
+
+.toggle-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-header:hover {
+    opacity: 0.7;
+}
+
+.day-content {
+    margin-top: 10px;
+}
+
 /* Mobile tweaks */
 
 @media (max-width: 600px) {
