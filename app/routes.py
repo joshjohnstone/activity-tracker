@@ -354,3 +354,4 @@ def delete_exercise(id):
     db.session.commit()
 
     return redirect("/exercises")
+

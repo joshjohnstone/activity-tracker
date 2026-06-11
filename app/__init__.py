@@ -1,8 +1,15 @@
 from flask import Flask
 from flask_migrate import Migrate
+from flask_login import LoginManager
 from app.utils import format_pace
 import os
-from app.models import db
+from app.models import db, User
+
+login_manager = LoginManager()
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 def create_app():
 
@@ -32,6 +39,9 @@ def create_app():
 
     #with app.app_context():
         #db.create_all()
+
+    login_manager.init_app(app)
+    login_manager.login_view = "bp.login"
 
     # register routes
     from app.routes import bp
