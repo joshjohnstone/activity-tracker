@@ -1,16 +1,18 @@
-from datetime import date
 import sqlite3
 import json
 from datetime import date, datetime, timedelta
-from flask import Blueprint, render_template, request, redirect
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import login_user, logout_user, login_required
 from collections import defaultdict
 from app.database import get_db
 from app.constants import EXERCISE_CATEGORIES, DISPLAY_FIELDS
-from app.models import db, Exercise, Activity
+from app.models import db, User, Exercise, Activity
+from werkzeug.security import generate_password_hash
 
 bp = Blueprint("main", __name__)
 
 @bp.route("/")
+@login_required
 def home():
     today = date.today().isoformat()
 
@@ -38,6 +40,7 @@ def home():
 
 
 @bp.route("/submit", methods=["POST"])
+@login_required
 def submit():
 
     form = request.form.to_dict()
@@ -113,6 +116,7 @@ def submit():
     """
 
 @bp.route("/history")
+@login_required
 def history():
 
     category = request.args.get("category")
@@ -219,6 +223,7 @@ def history():
     )
 
 @bp.route("/analytics")
+@login_required
 def analytics():
 
     exercise_volume = {}
@@ -316,6 +321,7 @@ def analytics():
 
 
 @bp.route("/exercises")
+@login_required
 def exercises():
     exercises = (
         Exercise.query
@@ -355,3 +361,59 @@ def delete_exercise(id):
 
     return redirect("/exercises")
 
+@bp.route("/register", methods=["GET", "POST"])
+def register():
+
+    if request.method == "POST":
+
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            flash("User already exists")
+            return redirect(url_for("main.register"))
+
+        user = User(email=email)
+        user.set_password(password)
+
+        db.session.add(user)
+        db.session.commit()
+
+        return redirect(url_for("main.login"))
+
+    return render_template("register.html")
+
+@bp.route("/login", methods=["GET", "POST"])
+def login():
+
+    if request.method == "POST":
+
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        user = User.query.filter_by(email=email).first()
+
+        if user and user.check_password(password):
+            login_user(user)
+            next_page = request.args.get("next")
+            return redirect(next_page or url_for("main.home"))
+
+        flash("Invalid credentials")
+
+    return render_template("login.html")
+
+@bp.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for("main.login"))
+
+from flask_login import current_user
+
+@bp.route("/whoami")
+def whoami():
+    return {
+        "authenticated": current_user.is_authenticated,
+        "user_id": current_user.get_id() if current_user.is_authenticated else None,
+        "email": getattr(current_user, "email", None)
+    }

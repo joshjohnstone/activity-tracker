@@ -41,7 +41,7 @@ def create_app():
         #db.create_all()
 
     login_manager.init_app(app)
-    login_manager.login_view = "bp.login"
+    login_manager.login_view = "main.login"
 
     # register routes
     from app.routes import bp
