@@ -1,17 +1,7 @@
-<!DOCTYPE html>
+{% extends "base.html" %}
 
-<html>
-<head>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block content %}
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1">
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
-
-    <title>Analytics</title>
-</head>
 <body>
 
     <h1>Training Analytics</h1>
@@ -122,3 +112,5 @@
 
 </body>
 </html>
+
+{% endblock %}

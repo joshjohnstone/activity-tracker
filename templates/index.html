@@ -1,13 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+{% extends "base.html" %}
 
-    <link rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}">
+{% block content %}
 
-    <title>Activity Tracker</title>
-</head>
 <body>
 
     <h1>Activity Tracker</h1>
@@ -143,6 +137,8 @@
 
 </body>
 </html>
+
+{% endblock %}
 
 <script>
 function updateForm() {

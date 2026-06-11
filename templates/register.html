@@ -1,5 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Create Account</h2>
+
+<p>Start tracking your workouts by creating an account.</p>
+
 <form method="POST">
     <input name="email" placeholder="Email">
     <input name="password" type="password" placeholder="Password">
     <button type="submit">Register</button>
 </form>
+
+{% endblock %}
