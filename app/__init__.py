@@ -30,8 +30,8 @@ def create_app():
 
     migrate = Migrate(app, db)
 
-    with app.app_context():
-        db.create_all()
+    #with app.app_context():
+        #db.create_all()
 
     # register routes
     from app.routes import bp
