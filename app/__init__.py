@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_migrate import Migrate
 from app.utils import format_pace
 import os
 from app.models import db
@@ -26,6 +27,8 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
+
+    migrate = Migrate(app, db)
 
     with app.app_context():
         db.create_all()

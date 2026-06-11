@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, redirect
 from collections import defaultdict
 from app.database import get_db
 from app.constants import EXERCISE_CATEGORIES, DISPLAY_FIELDS
-from app.models import db, Exercise
+from app.models import db, Exercise, Activity
 
 bp = Blueprint("main", __name__)
 
@@ -97,19 +97,14 @@ def submit():
     else:
         details = form
 
-    # Convert remaining fields into JSON
-    details_json = json.dumps(details)
+    activity = Activity(
+        date=activity_date,
+        category=category,
+        details=json.dumps(details)
+    )
 
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO activities (date, category, details)
-        VALUES (?, ?, ?)
-    """, (activity_date, category, details_json))
-
-    conn.commit()
-    conn.close()
+    db.session.add(activity)
+    db.session.commit()   
 
     return f"""
     <h2>Saved!</h2>
@@ -124,39 +119,27 @@ def history():
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
 
-    conn = get_db()
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    query = "SELECT * FROM activities WHERE 1=1"
-    params = []
+    query = Activity.query
 
     if category and category != "All":
-        query += " AND category = ?"
-        params.append(category)
+        query = query.filter(Activity.category == category)
 
     if start_date:
-        query += " AND date >= ?"
-        params.append(start_date)
+        query = query.filter(Activity.date >= start_date)
 
     if end_date:
-        query += " AND date <= ?"
-        params.append(end_date)
+        query = query.filter(Activity.date <= end_date)
 
-    query += " ORDER BY date DESC"
-
-    cur.execute(query, params)
-    rows = cur.fetchall()
-    conn.close()
+    rows = query.order_by(Activity.date.desc()).all()
 
     # ---- GROUP BY DATE ----
     grouped = {}
 
     for row in rows:
 
-        date_key = row["date"]
-        category = row["category"]
-        details = json.loads(row["details"])
+        date_key = row.date
+        category = row.category
+        details = json.loads(row.details)
         weekday = datetime.strptime(date_key, "%Y-%m-%d").strftime("%A")
 
         # Apply display filter
@@ -167,7 +150,7 @@ def history():
         }
 
         activity = {
-            "id": row["id"],
+            "id": row.id,
             "category": category,
             "details": filtered_details
         }
@@ -248,13 +231,7 @@ def analytics():
     days_since_sunday = (today.weekday() + 1) % 7
     start_of_week = today - timedelta(days=days_since_sunday)
 
-    conn = get_db()
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    cur.execute("SELECT * FROM activities")
-    rows = cur.fetchall()
-    conn.close()
+    rows = Activity.query.all()
 
     # Initialize counters
     category_counts = {
@@ -269,11 +246,11 @@ def analytics():
 
     for row in rows:
 
-        category = row["category"]
+        category = row.category
         category_counts[category] += 1
 
-        details = json.loads(row["details"])
-        activity_date = row["date"]
+        details = json.loads(row.details)
+        activity_date = row.date
 
         # Running analytics
         if category == "Running":
@@ -285,7 +262,7 @@ def analytics():
         if category == "Strength":
 
             exercise = details.get("exercise", "Unknown")
-            date_str = row["date"]
+            date_str = row.date
 
             exercise_set.add(exercise)
 
