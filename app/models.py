@@ -22,6 +22,12 @@ class Exercise(db.Model):
         nullable=False
     )
 
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False
+    )
+
 class Activity(db.Model):
 
     __tablename__ = "activities"
@@ -40,6 +46,12 @@ class Activity(db.Model):
 
     details = db.Column(
         db.Text,
+        nullable=False
+    )
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
         nullable=False
     )
 
@@ -64,6 +76,9 @@ class User(UserMixin, db.Model):
         db.DateTime,
         default=lambda: datetime.now(UTC)
     )
+
+    activities = db.relationship("Activity", backref="user", lazy=True)
+    exercises = db.relationship("Exercise", backref="user", lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
