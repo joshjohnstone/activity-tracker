@@ -23,8 +23,10 @@
 
     <canvas id="exerciseChart"></canvas>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
-    const exerciseData = {{ exercise_time_series | tojson | safe }};
+    const exerciseData = {{ exercise_time_series | tojson }};
     </script>
 
     <script>
@@ -56,6 +58,16 @@
         });
     }
 
+    const selector = document.getElementById("exerciseSelect");
+
+    if (selector && selector.value) {
+        buildChart(selector.value);
+
+        selector.addEventListener("change", function() {
+            buildChart(this.value);
+        });
+    }
+
     document.getElementById("exerciseSelect").addEventListener("change", function() {
         buildChart(this.value);
     });
@@ -63,23 +75,6 @@
     // initial render
     buildChart(document.getElementById("exerciseSelect").value);
     </script>
-
-
-
-    <h2>Strength Progress Over Time</h2>
-
-    {% for exercise, series in exercise_time_series.items() %}
-
-        <h3>{{ exercise }}</h3>
-
-        <ul>
-            {% for date, volume in series.items() %}
-                <li>{{ date }} → {{ volume }} lbs</li>
-            {% endfor %}
-        </ul>
-
-    {% endfor %}
-
 
     <h2>Workouts by Category</h2>
 
