@@ -2,8 +2,6 @@
 
 {% block content %}
 
-<body>
-
     <h1>Activity History</h1>
 
     <div class="nav">
@@ -126,10 +124,10 @@
     </div>
 
     {% endfor %}
-</body>
-</html>
 
 {% endblock %}
+
+{% block scripts %}
 
 <script>
 function toggleDay(header) {
@@ -138,3 +136,5 @@ function toggleDay(header) {
         content.style.display === "none" ? "block" : "none";
 }
 </script>
+
+{% endblock %}

@@ -1,13 +1,9 @@
-import sqlite3
 import json
 from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_user, logout_user, login_required
-from collections import defaultdict
-from app.database import get_db
-from app.constants import EXERCISE_CATEGORIES, DISPLAY_FIELDS
+from flask_login import login_user, logout_user, login_required, current_user
+from app.constants import EXERCISE_CATEGORIES, DISPLAY_FIELDS, DEFAULT_EXERCISES
 from app.models import db, User, Exercise, Activity
-from werkzeug.security import generate_password_hash
 
 bp = Blueprint("main", __name__)
 
@@ -16,20 +12,11 @@ bp = Blueprint("main", __name__)
 def home():
     today = date.today().isoformat()
 
-    conn = get_db()
-    conn.row_factory = sqlite3.Row
-
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT *
-        FROM exercises
-        ORDER BY name
-    """)
-
-    exercises = cur.fetchall()
-
-    conn.close()
+    exercises = (
+        Exercise.query
+        .order_by(Exercise.name)
+        .filter_by(user_id=current_user.id)
+    )   
 
     return render_template(
         "index.html", 
@@ -37,7 +24,6 @@ def home():
         exercises=exercises,
         EXERCISE_CATEGORIES=EXERCISE_CATEGORIES
     )
-
 
 @bp.route("/submit", methods=["POST"])
 @login_required
@@ -103,7 +89,8 @@ def submit():
     activity = Activity(
         date=activity_date,
         category=category,
-        details=json.dumps(details)
+        details=json.dumps(details),
+        user_id=current_user.id
     )
 
     db.session.add(activity)
@@ -123,7 +110,7 @@ def history():
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
 
-    query = Activity.query
+
 
     if category and category != "All":
         query = query.filter(Activity.category == category)
@@ -134,7 +121,9 @@ def history():
     if end_date:
         query = query.filter(Activity.date <= end_date)
 
-    rows = query.order_by(Activity.date.desc()).all()
+    rows = Activity.query.order_by(
+        Activity.date.desc()).filter_by(user_id=current_user.id
+    )
 
     # ---- GROUP BY DATE ----
     grouped = {}
@@ -236,7 +225,7 @@ def analytics():
     days_since_sunday = (today.weekday() + 1) % 7
     start_of_week = today - timedelta(days=days_since_sunday)
 
-    rows = Activity.query.all()
+    rows = Activity.query.filter_by(user_id=current_user.id)
 
     # Initialize counters
     category_counts = {
@@ -326,7 +315,7 @@ def exercises():
     exercises = (
         Exercise.query
         .order_by(Exercise.name)
-        .all()
+        .filter_by(user_id=current_user.id)
     )   
 
     return render_template(
@@ -336,6 +325,7 @@ def exercises():
     )
 
 @bp.route("/add_exercise", methods=["POST"])
+@login_required
 def add_exercise():
 
     name = request.form.get("name")
@@ -343,7 +333,8 @@ def add_exercise():
 
     exercise = Exercise(
         name=name,
-        category=category
+        category=category,
+        user_id=current_user.id
     )
 
     db.session.add(exercise)
@@ -352,9 +343,13 @@ def add_exercise():
     return redirect("/exercises")
 
 @bp.route("/delete_exercise/<int:id>")
+@login_required
 def delete_exercise(id):
 
-    exercise = Exercise.query.get_or_404(id)
+    exercise = Exercise.query.filter_by(
+        id=id,
+        user_id=current_user.id
+    ).first_or_404()
 
     db.session.delete(exercise)
     db.session.commit()
@@ -379,6 +374,19 @@ def register():
 
         db.session.add(user)
         db.session.commit()
+
+        for name, category in DEFAULT_EXERCISES:
+            db.session.add(
+                Exercise(
+                    name=name,
+                    category=category,
+                    user_id=user.id
+                )
+            )
+
+        db.session.commit()
+
+        print("Seeded exercise count:", Exercise.query.count())  
 
         return redirect(url_for("main.login"))
 
@@ -407,8 +415,6 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for("main.login"))
-
-from flask_login import current_user
 
 @bp.route("/whoami")
 def whoami():

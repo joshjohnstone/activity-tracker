@@ -39,7 +39,7 @@ def init_db():
     )
     """)
 
-    seed_exercises(cur)
+    #seed_exercises(cur)
 
     conn.commit()
     conn.close()
