@@ -389,6 +389,7 @@ def register():
 
         print("Seeded exercise count:", Exercise.query.count())  
 
+        flash(f"User {email} successfully registered.")
         return redirect(url_for("main.login"))
 
     return render_template("register.html")
