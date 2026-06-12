@@ -189,6 +189,38 @@ td {
     margin-left: 6px;
 }
 
+.helper-text {
+    margin-top: 6px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.helper-text a {
+    text-decoration: none;
+}
+
+.helper-text a:hover {
+    text-decoration: underline;
+}
+
+.set-row {
+    margin-bottom: 8px;
+}
+
+.remove-set-btn {
+    margin-left: 8px;
+}
+
+.control-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: blue;
+    text-decoration: underline;
+    cursor: pointer;
+    font: inherit;
+}
+
 /* Mobile tweaks */
 
 @media (max-width: 600px) {

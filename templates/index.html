@@ -25,7 +25,7 @@
     <label for="category">Category:</label>
     <select id="category" name="category">
         <option value="Running">Running</option>
-        <option value="Strength">Strength Training</option>
+        <option value="Strength" selected>Strength Training</option>
         <option value="Mobility">Mobility</option>
     </select>
 
@@ -55,12 +55,16 @@
         <br><br>
 
         <label>Distance (miles):</label>
-        <input type="number" step="0.01" name="distance">
+        <input type="number" step="0.01" name="distance", placeholder=0.00>
 
         <br><br>
-
-        <label>Duration (min):</label>
-        <input type="number" name="duration">
+        <label>Duration (mm:ss):</label>
+        <input
+            type="text"
+            name="duration"
+            placeholder="00:00"
+            pattern="[0-9]+:[0-5][0-9]"
+        >
     </div>
 
     <!-- STRENGTH FIELDS -->
@@ -90,27 +94,44 @@
 
         </select>
 
-        <br><br>
+        <p class="helper-text">
+            Don't see the exercise you're looking for?
+            <a href="{{ url_for('main.exercises') }}">Add or manage exercises here</a>.
+        </p>
+
+        <br>
 
         <h4>Sets</h4>
 
-        <div>
-            Set 1:
-            <input type="number" name="reps_1" placeholder="reps">
-            <input type="number" name="weight_1" placeholder="weight">
+        <div id="sets-container">
+
+            <div class="set-row">
+                <span class="set-label">Set 1:</span>
+                <input type="number" name="reps" placeholder="reps" inputmode="numeric">
+                <input type="number" name="weight" placeholder="weight" inputmode="numeric">
+            </div>
+
+            <div class="set-row">
+                <span class="set-label">Set 2:</span>
+                <input type="number" name="reps" placeholder="reps" inputmode="numeric">
+                <input type="number" name="weight" placeholder="weight" inputmode="numeric">
+            </div>
+
+            <div class="set-row">
+                <span class="set-label">Set 3:</span>
+                <input type="number" name="reps" placeholder="reps" inputmode="numeric">
+                <input type="number" name="weight" placeholder="weight" inputmode="numeric">
+            </div>
+
         </div>
 
-        <div>
-            Set 2:
-            <input type="number" name="reps_2" placeholder="reps">
-            <input type="number" name="weight_2" placeholder="weight">
-        </div>
+        <button type="button" id="add-set-btn", class="control-link">
+            + Add Set
+        </button>
 
-        <div>
-            Set 3:
-            <input type="number" name="reps_3" placeholder="reps">
-            <input type="number" name="weight_3" placeholder="weight">
-        </div>
+        <button type="button" id="remove-set-btn", class="control-link">
+            − Remove Last Set
+        </button>
 
     </div>
 
@@ -195,6 +216,102 @@ select.addEventListener("input", function (e) {
         select.appendChild(option);
     });
 });
+</script>
+
+<script>
+
+function updateSetButtons() {
+
+    const count =
+        document.querySelectorAll(".set-row").length;
+
+    document.getElementById("remove-set-btn").style.display =
+        count > 1 ? "inline" : "none";
+    }
+
+function renumberSets() {
+
+    const rows = document.querySelectorAll(".set-row");
+
+    rows.forEach((row, index) => {
+        row.querySelector(".set-label").textContent =
+            `Set ${index + 1}:`;
+    });
+
+}
+
+document
+    .getElementById("add-set-btn")
+    .addEventListener("click", function() {
+
+        const container =
+            document.getElementById("sets-container");
+
+        const setNumber =
+            container.querySelectorAll(".set-row").length + 1;
+
+        const row = document.createElement("div");
+
+        row.className = "set-row";
+
+        row.innerHTML = `
+            <span class="set-label">
+                Set ${setNumber}:
+            </span>
+
+            <input type="number"
+                   name="reps"
+                   placeholder="reps">
+
+            <input type="number"
+                   name="weight"
+                   placeholder="weight">
+        `;
+
+        container.appendChild(row);
+
+        updateSetButtons();
+    });
+
+document
+    .getElementById("sets-container")
+    .addEventListener("click", function(e) {
+
+        if (!e.target.classList.contains("remove-set-btn")) {
+            return;
+        }
+
+        const rows =
+            document.querySelectorAll(".set-row");
+
+        if (rows.length === 1) {
+            return;
+        }
+
+        e.target.closest(".set-row").remove();
+
+        renumberSets();
+
+    });
+
+document
+    .getElementById("remove-set-btn")
+    .addEventListener("click", function() {
+
+        const rows =
+            document.querySelectorAll(".set-row");
+
+        if (rows.length <= 1) {
+            return;
+        }
+
+        rows[rows.length - 1].remove();
+
+        renumberSets();
+        updateSetButtons();
+    });
+
+updateSetButtons();
 </script>
 
 {% endblock %}

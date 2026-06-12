@@ -1,8 +1,8 @@
-"""fresh reset of db with user ownership
+"""Fresh initial schema
 
-Revision ID: d7cc83a70df9
+Revision ID: d0a1cdaa4323
 Revises: 
-Create Date: 2026-06-11 16:49:01.937306
+Create Date: 2026-06-12 10:00:33.230556
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd7cc83a70df9'
+revision = 'd0a1cdaa4323'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -41,8 +41,7 @@ def upgrade():
     sa.Column('category', sa.String(length=50), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('name')
+    sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
 

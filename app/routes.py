@@ -43,11 +43,12 @@ def submit():
 
         exercise = form.get("exercise")
 
+        reps_list = request.form.getlist("reps")
+        weight_list = request.form.getlist("weight")       
+
         sets = []
 
-        for i in range(1, 4):
-            reps = form.get(f"reps_{i}")
-            weight = form.get(f"weight_{i}")
+        for reps, weight in zip(reps_list, weight_list):
 
             if reps or weight:
                 sets.append({
@@ -64,12 +65,15 @@ def submit():
     elif category == "Running":
         try:
             distance = float(form.get("distance", 0))
-            duration = float(form.get("duration", 0))
+            duration_str = float(form.get("duration", "0:00"))
+
+            minutes, seconds = duration_str.split(":")
+            duration = (60 * minutes) + seconds
 
             # pace = minutes per mile
             pace = None
             if distance > 0:
-                pace = duration / distance
+                pace = duration / distance / 60
 
             details = {
                 "distance": distance,
