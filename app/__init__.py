@@ -21,15 +21,26 @@ def create_app():
         static_folder=os.path.join(base_dir, "..", "static")
     )
 
-    # configuration will go here later (Postgres, secret key, etc.)
-    app.config["SECRET_KEY"] = "dev"
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev")
 
     db_path = os.path.join(
         os.path.dirname(os.path.dirname(__file__)),
         "activities.db"
     )
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+    database_url = os.environ.get(
+        "DATABASE_URL",
+        f"sqlite:///{db_path}"
+    )
+
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace(
+            "postgres://",
+            "postgresql://",
+            1
+        )
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
