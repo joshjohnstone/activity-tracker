@@ -100,11 +100,8 @@ def submit():
     db.session.add(activity)
     db.session.commit()   
 
-    return f"""
-    <h2>Saved!</h2>
-    <p>Stored {category} activity on {activity_date}</p>
-    <a href="/">Back</a>
-    """
+    flash(f"{category} activity saved successfully.")
+    return redirect(url_for("main.home"))
 
 @bp.route("/history")
 @login_required

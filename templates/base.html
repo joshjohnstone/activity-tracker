@@ -9,6 +9,18 @@
 </head>
 <body>
 
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-container">
+                {% for message in messages %}
+                    <div class="flash-message">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
     <div class="top-bar">
         {% if current_user.is_authenticated %}
             Logged in as <strong>{{ current_user.email }}</strong>
@@ -27,3 +39,12 @@
 
 </body>
 </html>
+
+<script>
+setTimeout(() => {
+    document.querySelectorAll(".flash-message")
+        .forEach(el => {
+            el.style.display = "none";
+        });
+}, 3000);
+</script>
