@@ -197,25 +197,6 @@ const allOptions = Array.from(select.options).map(opt => ({
     text: opt.text
 }));
 
-select.addEventListener("input", function (e) {
-    const query = select.value.toLowerCase();
-
-    // clear options
-    select.innerHTML = "";
-
-    // filter matches
-    const filtered = allOptions.filter(opt =>
-        opt.text.toLowerCase().includes(query)
-    );
-
-    // rebuild options
-    filtered.forEach(opt => {
-        const option = document.createElement("option");
-        option.value = opt.value;
-        option.text = opt.text;
-        select.appendChild(option);
-    });
-});
 </script>
 
 <script>
