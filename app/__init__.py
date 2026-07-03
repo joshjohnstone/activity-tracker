@@ -110,4 +110,74 @@ def create_app():
         print(f"Backfilled {updated} activities.")
         print(f"Skipped {skipped} activities.")
 
+    @app.cli.command("seed-default-exercises")
+    def seed_default_exercises():
+        """
+        Add missing DEFAULT_EXERCISES for existing users.
+
+        Also updates missing metadata on existing exercises with matching names.
+        This is safe to run multiple times.
+        """
+        from app.models import db, User, Exercise
+        from app.constants import DEFAULT_EXERCISES
+
+        users = User.query.all()
+
+        total_created = 0
+        total_updated = 0
+
+        for user in users:
+            existing_exercises = Exercise.query.filter_by(user_id=user.id).all()
+
+            existing_by_name = {
+                exercise.name.strip().lower(): exercise
+                for exercise in existing_exercises
+            }
+
+            for name, activity_category, lift_category, tracking_type in DEFAULT_EXERCISES:
+                key = name.strip().lower()
+
+                existing = existing_by_name.get(key)
+
+                if existing:
+                    changed = False
+
+                    if not existing.activity_category:
+                        existing.activity_category = activity_category
+                        changed = True
+
+                    if not existing.lift_category and lift_category:
+                        existing.lift_category = lift_category
+                        changed = True
+
+                    if not existing.tracking_type:
+                        existing.tracking_type = tracking_type
+                        changed = True
+
+                    # Optional: if legacy Exercise.category is still being used
+                    # anywhere old, keep it aligned for strength exercises only.
+                    if not existing.category and lift_category:
+                        existing.category = lift_category
+                        changed = True
+
+                    if changed:
+                        total_updated += 1
+
+                else:
+                    db.session.add(
+                        Exercise(
+                            name=name,
+                            activity_category=activity_category,
+                            lift_category=lift_category,
+                            tracking_type=tracking_type,
+                            category=lift_category,
+                            user_id=user.id,
+                        )
+                    )
+                    total_created += 1
+
+        db.session.commit()
+
+        print(f"Seed complete. Created {total_created} exercises. Updated {total_updated} exercises.")
+
     return app
