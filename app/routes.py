@@ -488,46 +488,139 @@ def analytics():
     days_since_sunday = (today.weekday() + 1) % 7
     start_of_week = today - timedelta(days=days_since_sunday)
 
-    rows = Activity.query.filter_by(user_id=current_user.id)
+    rows = Activity.query.filter_by(user_id=current_user.id).all()
 
-    # Initialize counters
-    category_counts = {
-        "Running": 0,
-        "Strength": 0,
-        "Mobility": 0
-    }
+    # Avoid requiring an Activity.exercise relationship.
+    # This lets us derive new-model metadata from Exercise when exercise_id exists.
+    user_exercises = Exercise.query.filter_by(user_id=current_user.id).all()
+    exercise_lookup = {exercise.id: exercise for exercise in user_exercises}
+
+    # Initialize counters from the new broad activity categories:
+    # Strength, Cardio, Mobility, Other
+    category_counts = {category: 0 for category in ACTIVITY_CATEGORIES}
 
     weekly_running = {}
     weekly_strength_volume = 0
     exercise_set = set()
 
-    for row in rows:
+    def parse_details(raw_details):
+        if not raw_details:
+            return {}
 
-        category = row.category
-        category_counts[category] += 1
+        try:
+            return json.loads(raw_details)
+        except (TypeError, json.JSONDecodeError):
+            return {}
 
-        details = json.loads(row.details)
-        activity_date = row.date
-
-        # Running analytics
+    def normalize_activity_category(category):
+        """
+        Convert legacy categories into the new broad activity category model.
+        """
         if category == "Running":
-            distance = float(details.get("distance", 0))
-            weekly_running.setdefault(activity_date, 0)
-            weekly_running[activity_date] += distance
+            return "Cardio"
 
-        # Strength volume: sets × reps × weight
+        if category in ACTIVITY_CATEGORIES:
+            return category
+
+        return "Other"
+
+    def infer_tracking_type(category, details):
+        """
+        Fallback for legacy activities that do not yet have Exercise metadata
+        or tracking_type stored in details.
+        """
+        if details.get("tracking_type"):
+            return details.get("tracking_type")
+
+        if category == "Running":
+            return "distance_duration"
+
         if category == "Strength":
+            return "weighted_reps"
 
-            exercise = details.get("exercise", "Unknown")
-            date_str = row.date
+        if category == "Mobility":
+            return "duration_only"
 
-            exercise_set.add(exercise)
+        return "notes_only"
 
-            # parse date once (important for weekly filtering)
-            activity_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    def coerce_activity_date(value):
+        """
+        Supports either db.Date objects or legacy string dates.
+        """
+        if isinstance(value, date):
+            return value
+
+        if isinstance(value, datetime):
+            return value.date()
+
+        if isinstance(value, str):
+            try:
+                return datetime.strptime(value, "%Y-%m-%d").date()
+            except ValueError:
+                try:
+                    return datetime.fromisoformat(value).date()
+                except ValueError:
+                    return None
+
+        return None
+
+    for row in rows:
+        details = parse_details(row.details)
+
+        exercise_obj = exercise_lookup.get(row.exercise_id)
+
+        # Prefer new Exercise metadata. Fall back to details, then legacy Activity.category.
+        raw_category = (
+            exercise_obj.activity_category
+            if exercise_obj and exercise_obj.activity_category
+            else details.get("activity_category") or row.category
+        )
+
+        activity_category = normalize_activity_category(raw_category)
+
+        tracking_type = (
+            exercise_obj.tracking_type
+            if exercise_obj and exercise_obj.tracking_type
+            else infer_tracking_type(row.category, details)
+        )
+
+        exercise_name = (
+            exercise_obj.name
+            if exercise_obj and exercise_obj.name
+            else details.get("exercise", "Unknown")
+        )
+
+        activity_date = coerce_activity_date(row.date)
+
+        if activity_date:
+            date_str = activity_date.isoformat()
+        else:
+            date_str = str(row.date)
+
+        # ---- CATEGORY COUNTS ----
+        category_counts.setdefault(activity_category, 0)
+        category_counts[activity_category] += 1
+
+        # ---- CARDIO / RUNNING ANALYTICS ----
+        # Keep the old variable name weekly_running so analytics.html does not break.
+        if tracking_type == "distance_duration":
+            try:
+                distance = float(details.get("distance") or 0)
+            except (ValueError, TypeError):
+                distance = 0
+
+            if activity_date:
+                weekly_running.setdefault(date_str, 0)
+                weekly_running[date_str] += distance
+
+        # ---- STRENGTH VOLUME: sets × reps × weight ----
+        #
+        # This preserves your existing weighted volume analytics.
+        # Legacy Strength rows are inferred as weighted_reps above.
+        if tracking_type == "weighted_reps":
+            exercise_set.add(exercise_name)
 
             sets_data = details.get("sets", [])
-
             daily_volume = 0
 
             for s in sets_data:
@@ -535,28 +628,24 @@ def analytics():
                     reps = int(s.get("reps") or 0)
                     weight = float(s.get("weight") or 0)
                     daily_volume += reps * weight
-                except (ValueError, TypeError):
+                except (ValueError, TypeError, AttributeError):
                     pass
 
-            # ---- TIME SERIES (per exercise) ----
-            if exercise not in exercise_time_series:
-                exercise_time_series[exercise] = {}
+            # ---- TIME SERIES: per exercise ----
+            exercise_time_series.setdefault(exercise_name, {})
+            exercise_time_series[exercise_name].setdefault(date_str, 0)
+            exercise_time_series[exercise_name][date_str] += daily_volume
 
-            if date_str not in exercise_time_series[exercise]:
-                exercise_time_series[exercise][date_str] = 0
-
-            exercise_time_series[exercise][date_str] += daily_volume
-
-            # ---- WEEKLY TOTAL (FIXED) ----
-            if start_of_week <= activity_date <= today:
+            # ---- WEEKLY TOTAL ----
+            if activity_date and start_of_week <= activity_date <= today:
                 weekly_strength_volume += daily_volume
 
-            # ---- OPTIONAL: per-exercise totals ----
-            exercise_volume.setdefault(exercise, 0)
-            exercise_volume[exercise] += daily_volume
+            # ---- PER-EXERCISE TOTALS ----
+            exercise_volume.setdefault(exercise_name, 0)
+            exercise_volume[exercise_name] += daily_volume
 
-            exercise_frequency.setdefault(exercise, 0)
-            exercise_frequency[exercise] += 1
+            exercise_frequency.setdefault(exercise_name, 0)
+            exercise_frequency[exercise_name] += 1
 
     exercise_list = sorted(list(exercise_set))
 
@@ -570,7 +659,6 @@ def analytics():
         exercise_time_series=exercise_time_series,
         exercise_list=exercise_list
     )
-
 
 @bp.route("/exercises")
 @login_required
