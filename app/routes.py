@@ -665,16 +665,117 @@ def analytics():
 def exercises():
     exercises = (
         Exercise.query
-        .order_by(Exercise.name)
         .filter_by(user_id=current_user.id)
-    )   
+        .order_by(Exercise.activity_category, Exercise.lift_category, Exercise.name)
+        .all()
+    )
+
+    tracking_type_labels = {
+        "weighted_reps": "Weighted reps",
+        "bodyweight_reps": "Bodyweight reps",
+        "timed_hold": "Timed hold",
+        "duration_only": "Duration only",
+        "distance_duration": "Distance + duration",
+        "notes_only": "Notes only",
+    }
+
+    exercise_items = []
+
+    for exercise in exercises:
+        # Prefer new-model fields
+        activity_category = exercise.activity_category
+        lift_category = exercise.lift_category
+        tracking_type = exercise.tracking_type
+
+        # Legacy fallback:
+        # Older Exercise.category may contain Push/Pull/Legs/etc.
+        if not lift_category and exercise.category in LIFT_CATEGORIES:
+            lift_category = exercise.category
+
+        if not activity_category:
+            if lift_category in LIFT_CATEGORIES:
+                activity_category = "Strength"
+            else:
+                activity_category = "Other"
+
+        if activity_category not in ACTIVITY_CATEGORIES:
+            activity_category = "Other"
+
+        if not tracking_type:
+            if activity_category == "Strength":
+                tracking_type = "weighted_reps"
+            elif activity_category == "Cardio":
+                tracking_type = "distance_duration"
+            elif activity_category == "Mobility":
+                tracking_type = "duration_only"
+            else:
+                tracking_type = "notes_only"
+
+        exercise_items.append({
+            "id": exercise.id,
+            "name": exercise.name,
+            "activity_category": activity_category,
+            "lift_category": lift_category,
+            "tracking_type": tracking_type,
+            "tracking_type_label": tracking_type_labels.get(tracking_type, tracking_type),
+        })
+
+    exercise_groups = []
+
+    for activity_category in ACTIVITY_CATEGORIES:
+        category_items = [
+            item for item in exercise_items
+            if item["activity_category"] == activity_category
+        ]
+
+        if not category_items:
+            continue
+
+        if activity_category == "Strength":
+            subgroups = []
+
+            for lift_category in LIFT_CATEGORIES:
+                lift_items = [
+                    item for item in category_items
+                    if item["lift_category"] == lift_category
+                ]
+
+                if lift_items:
+                    subgroups.append({
+                        "name": lift_category,
+                        "items": lift_items,
+                    })
+
+            uncategorized_items = [
+                item for item in category_items
+                if not item["lift_category"]
+            ]
+
+            if uncategorized_items:
+                subgroups.append({
+                    "name": "Uncategorized",
+                    "items": uncategorized_items,
+                })
+
+        else:
+            subgroups = [{
+                "name": None,
+                "items": category_items,
+            }]
+
+        exercise_groups.append({
+            "name": activity_category,
+            "count": len(category_items),
+            "subgroups": subgroups,
+        })
 
     return render_template(
         "exercises.html",
-        exercises=exercises,
+        exercise_groups=exercise_groups,
         ACTIVITY_CATEGORIES=ACTIVITY_CATEGORIES,
         LIFT_CATEGORIES=LIFT_CATEGORIES,
-        TRACKING_TYPES=TRACKING_TYPES
+        TRACKING_TYPES=TRACKING_TYPES,
+        tracking_type_labels=tracking_type_labels,
     )
 
 @bp.route("/add_exercise", methods=["POST"])

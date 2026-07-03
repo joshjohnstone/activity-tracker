@@ -11,10 +11,10 @@
 
 <h2>Add Exercise</h2>
 
-<form method="POST" action="/add_exercise">
+<form method="POST" action="/add_exercise" class="exercise-form">
 
     <label for="name">Exercise Name:</label>
-    <input type="text" name="name" required>
+    <input type="text" name="name" id="name" required>
 
     <label for="activity_category">Activity Category:</label>
     <select name="activity_category" id="activity_category">
@@ -25,24 +25,26 @@
         {% endfor %}
     </select>
 
-    <label for="lift_category">Lift Category:</label>
-    <select name="lift_category" id="lift_category">
-        <option value="">None</option>
-        {% for category in LIFT_CATEGORIES %}
-            <option value="{{ category }}">
-                {{ category }}
-            </option>
-        {% endfor %}
-    </select>
+    <div id="lift-category-wrapper">
+        <label for="lift_category">Lift Category:</label>
+        <select name="lift_category" id="lift_category">
+            <option value="">None</option>
+            {% for category in LIFT_CATEGORIES %}
+                <option value="{{ category }}">
+                    {{ category }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
 
     <label for="tracking_type">Tracking Type:</label>
     <select name="tracking_type" id="tracking_type">
         {% for tracking_type in TRACKING_TYPES %}
             <option value="{{ tracking_type }}">
-                {{ tracking_type }}
+                {{ tracking_type_labels.get(tracking_type, tracking_type) }}
             </option>
         {% endfor %}
-    </select> 
+    </select>
 
     <button type="submit">Add Exercise</button>
 
@@ -50,24 +52,103 @@
 
 <h1>Exercises</h1>
 
-<ul class="exercise-list">
-{% for exercise in exercises %}
-    <li class="exercise-item">
+{% if exercise_groups %}
 
-        <div class="exercise-info">
-            <strong class="exercise-name">{{ exercise["name"] }}</strong>
-            <span class="exercise-category">({{ exercise.category }})</span>
-        </div>
+    <div class="exercise-groups">
 
-        <a class="delete-btn"
-        href="/delete_exercise/{{ exercise['id'] }}"
-        onclick="return confirm('Delete this exercise?');">
-            Delete
-        </a>
+        {% for group in exercise_groups %}
 
-    </li>
-{% endfor %}
-</ul>
+            <section class="exercise-group">
+                <h2 class="exercise-group-heading">
+                    {{ group.name }}
+                    <span class="exercise-count">{{ group.count }}</span>
+                </h2>
 
+                {% for subgroup in group.subgroups %}
+
+                    {% if subgroup.name %}
+                        <h3 class="exercise-subgroup-heading">{{ subgroup.name }}</h3>
+                    {% endif %}
+
+                    <ul class="exercise-list">
+                        {% for exercise in subgroup["items"] %}
+                            <li class="exercise-item">
+
+                                <div class="exercise-info">
+                                    <strong class="exercise-name">{{ exercise.name }}</strong>
+
+                                    <div class="exercise-meta">
+                                        <span class="exercise-badge">
+                                            {{ exercise.activity_category }}
+                                        </span>
+
+                                        {% if exercise.lift_category %}
+                                            <span class="exercise-badge">
+                                                {{ exercise.lift_category }}
+                                            </span>
+                                        {% endif %}
+
+                                        <span class="exercise-badge">
+                                            {{ exercise.tracking_type_label }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <a class="delete-btn"
+                                   href="/delete_exercise/{{ exercise.id }}"
+                                   onclick="return confirm('Delete this exercise?');">
+                                    Delete
+                                </a>
+
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                {% endfor %}
+
+            </section>
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+
+    <p>No exercises yet.</p>
+
+{% endif %}
+
+<script>
+    const activityCategorySelect = document.getElementById("activity_category");
+    const liftCategoryWrapper = document.getElementById("lift-category-wrapper");
+    const liftCategorySelect = document.getElementById("lift_category");
+    const trackingTypeSelect = document.getElementById("tracking_type");
+
+    function syncExerciseForm() {
+        const activityCategory = activityCategorySelect.value;
+
+        if (activityCategory === "Strength") {
+            liftCategoryWrapper.style.display = "block";
+
+            if (!trackingTypeSelect.value) {
+                trackingTypeSelect.value = "weighted_reps";
+            }
+        } else {
+            liftCategoryWrapper.style.display = "none";
+            liftCategorySelect.value = "";
+
+            if (activityCategory === "Cardio") {
+                trackingTypeSelect.value = "distance_duration";
+            } else if (activityCategory === "Mobility") {
+                trackingTypeSelect.value = "duration_only";
+            } else if (activityCategory === "Other") {
+                trackingTypeSelect.value = "notes_only";
+            }
+        }
+    }
+
+    activityCategorySelect.addEventListener("change", syncExerciseForm);
+    syncExerciseForm();
+</script>
 
 {% endblock %}
