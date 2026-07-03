@@ -21,131 +21,157 @@
 
     <br><br>
 
-    <!-- CATEGORY -->
-    <label for="category">Category:</label>
-    <select id="category" name="category">
-        <option value="Running">Running</option>
-        <option value="Strength" selected>Strength Training</option>
-        <option value="Mobility">Mobility</option>
+    <!-- ACTIVITY / EXERCISE TEMPLATE -->
+    <label for="exercise">Activity:</label>
+
+    <select id="exercise" name="exercise_id" required>
+
+        {% for activity_category in ACTIVITY_CATEGORIES %}
+
+            <optgroup label="{{ activity_category }}">
+
+                {% for exercise in exercises %}
+                    {% if exercise.activity_category == activity_category %}
+
+                        <option
+                            value="{{ exercise.id }}"
+                            data-tracking-type="{{ exercise.tracking_type }}"
+                            data-activity-category="{{ exercise.activity_category }}"
+                        >
+                            {{ exercise.name }}
+                            {% if exercise.lift_category %}
+                                ({{ exercise.lift_category }})
+                            {% endif %}
+                        </option>
+
+                    {% endif %}
+                {% endfor %}
+
+            </optgroup>
+
+        {% endfor %}
+
     </select>
 
-    <br><br>
+    <p class="helper-text">
+        Don't see the activity you're looking for?
+        <a href="{{ url_for('main.exercises') }}">Add or manage activities here</a>.
+    </p>
 
-    <!-- RUNNING FIELDS -->
-    <div id="running-fields" class="section">
-        <h3>Running</h3>
+    <br>
 
-        <label>Location Type:</label>
-        <br>
+    <!-- SET-BASED FIELDS -->
+    <div id="sets-fields" class="tracking-section">
 
-        <div class="radio-group">
-
-            <label>
-                <input type="radio" name="run_location" value="Outdoors">
-                Outdoors
-            </label>
-
-            <label>
-                <input type="radio" name="run_location" value="Treadmill">
-                Treadmill
-            </label>
-
-        </div>
-
-        <br><br>
-
-        <label>Distance (miles):</label>
-        <input type="number" step="0.01" name="distance", placeholder=0.00>
-
-        <br><br>
-        <label>Duration (mm:ss):</label>
-        <input
-            type="text"
-            name="duration"
-            placeholder="00:00"
-            pattern="[0-9]+:[0-5][0-9]"
-        >
-    </div>
-
-    <!-- STRENGTH FIELDS -->
-    <div id="strength-fields" class="section">
-
-        <h3>Strength Training</h3>
-
-        <label for="exercise">Exercise:</label>
-
-        <select id="exercise" name="exercise" required>
-
-            {% for category in EXERCISE_CATEGORIES %}
-
-                <optgroup label="{{ category }}">
-
-                    {% for exercise in exercises %}
-                        {% if exercise.category == category %}
-                            <option value="{{ exercise.name }}">
-                                {{ exercise.name }}
-                            </option>
-                        {% endif %}
-                    {% endfor %}
-
-                </optgroup>
-
-            {% endfor %}
-
-        </select>
-
-        <p class="helper-text">
-            Don't see the exercise you're looking for?
-            <a href="{{ url_for('main.exercises') }}">Add or manage exercises here</a>.
-        </p>
-
-        <br>
-
-        <h4>Sets</h4>
+        <h3 id="sets-heading">Sets</h3>
 
         <div id="sets-container">
-
-            <div class="set-row">
-                <span class="set-label">Set 1:</span>
-                <input type="number" name="reps" placeholder="reps" inputmode="numeric">
-                <input type="number" name="weight" placeholder="weight" inputmode="numeric">
-            </div>
-
-            <div class="set-row">
-                <span class="set-label">Set 2:</span>
-                <input type="number" name="reps" placeholder="reps" inputmode="numeric">
-                <input type="number" name="weight" placeholder="weight" inputmode="numeric">
-            </div>
-
-            <div class="set-row">
-                <span class="set-label">Set 3:</span>
-                <input type="number" name="reps" placeholder="reps" inputmode="numeric">
-                <input type="number" name="weight" placeholder="weight" inputmode="numeric">
-            </div>
-
+            <!-- JavaScript will insert set rows here -->
         </div>
 
-        <button type="button" id="add-set-btn", class="control-link">
+        <button type="button" id="add-set-btn" class="control-link">
             + Add Set
         </button>
 
-        <button type="button" id="remove-set-btn", class="control-link">
+        <button type="button" id="remove-set-btn" class="control-link">
             − Remove Last Set
         </button>
 
     </div>
 
-    <!-- MOBILITY FIELDS -->
-    <div id="mobility-fields" class="section">
-        <h3>Mobility</h3>
+    <!-- DISTANCE + DURATION FIELDS -->
+    <div id="distance-duration-fields" class="tracking-section">
 
-        <label>Duration (min):</label>
-        <input type="number" name="mobility_duration">
+        <h3>Distance / Duration</h3>
+
+        <label for="distance">Distance:</label>
+        <input
+            type="number"
+            step="0.01"
+            id="distance"
+            name="distance"
+            placeholder="0.00"
+        >
 
         <br><br>
 
-        <label>Notes:</label>
-        <input type="text" name="notes">
+        <label for="distance_unit">Unit:</label>
+        <select id="distance_unit" name="distance_unit">
+            <option value="miles">miles</option>
+            <option value="meters">meters</option>
+            <option value="kilometers">kilometers</option>
+        </select>
+
+        <br><br>
+
+        <label for="duration">Duration (mm:ss):</label>
+        <input
+            type="text"
+            id="duration"
+            name="duration"
+            placeholder="00:00"
+            pattern="[0-9]+:[0-5][0-9]"
+        >
+
+        <br><br>
+
+        <label for="run_location">Location Type:</label>
+        <select id="run_location" name="run_location">
+            <option value="">None</option>
+            <option value="Outdoors">Outdoors</option>
+            <option value="Treadmill">Treadmill</option>
+        </select>
+
+        <br><br>
+
+        <label for="strokes">Strokes, if applicable:</label>
+        <input
+            type="number"
+            id="strokes"
+            name="strokes"
+            placeholder="optional"
+            inputmode="numeric"
+        >
+
+    </div>
+
+    <!-- DURATION-ONLY FIELDS -->
+    <div id="duration-only-fields" class="tracking-section">
+
+        <h3>Duration</h3>
+
+        <label for="duration_only">Duration (mm:ss):</label>
+        <input
+            type="text"
+            id="duration_only"
+            name="duration"
+            placeholder="00:00"
+            pattern="[0-9]+:[0-5][0-9]"
+        >
+
+        <br><br>
+
+        <label for="duration_notes">Notes:</label>
+        <input
+            type="text"
+            id="duration_notes"
+            name="notes"
+        >
+
+    </div>
+
+    <!-- NOTES-ONLY FIELDS -->
+    <div id="notes-only-fields" class="tracking-section">
+
+        <h3>Notes</h3>
+
+        <label for="notes">Notes:</label>
+        <input
+            type="text"
+            id="notes"
+            name="notes"
+        >
+
     </div>
 
     <br>
@@ -159,140 +185,179 @@
 {% block scripts %}
 
 <script>
-function updateForm() {
-    const category = document.getElementById("category").value;
+const MIN_SETS = 3;
 
-    const running = document.getElementById("running-fields");
-    const strength = document.getElementById("strength-fields");
-    const mobility = document.getElementById("mobility-fields");
+const exerciseSelect = document.getElementById("exercise");
+const setsFields = document.getElementById("sets-fields");
+const setsContainer = document.getElementById("sets-container");
+const setsHeading = document.getElementById("sets-heading");
 
-    // Hide everything first
-    running.style.display = "none";
-    strength.style.display = "none";
-    mobility.style.display = "none";
+const distanceDurationFields = document.getElementById("distance-duration-fields");
+const durationOnlyFields = document.getElementById("duration-only-fields");
+const notesOnlyFields = document.getElementById("notes-only-fields");
 
-    // Show relevant section
-    if (category === "Running") {
-        running.style.display = "block";
-    } else if (category === "Strength") {
-        strength.style.display = "block";
-    } else if (category === "Mobility") {
-        mobility.style.display = "block";
-    }
+const addSetBtn = document.getElementById("add-set-btn");
+const removeSetBtn = document.getElementById("remove-set-btn");
+
+let currentTrackingType = null;
+
+function disableInputs(section) {
+    section.querySelectorAll("input, select, textarea").forEach(input => {
+        input.disabled = true;
+    });
 }
 
-// Run on dropdown change
-document.getElementById("category").addEventListener("change", updateForm);
+function enableInputs(section) {
+    section.querySelectorAll("input, select, textarea").forEach(input => {
+        input.disabled = false;
+    });
+}
 
-// Run once on page load
-updateForm();
-</script>
+function hideAllTrackingSections() {
+    const sections = document.querySelectorAll(".tracking-section");
 
-<script>
-const select = document.getElementById("exercise");
+    sections.forEach(section => {
+        section.style.display = "none";
+        disableInputs(section);
+    });
+}
 
-// store original options
-const allOptions = Array.from(select.options).map(opt => ({
-    value: opt.value,
-    text: opt.text
-}));
+function getSelectedTrackingType() {
+    const selected = exerciseSelect.options[exerciseSelect.selectedIndex];
+    return selected.dataset.trackingType;
+}
 
-</script>
-
-<script>
-
-function updateSetButtons() {
-
-    const count =
-        document.querySelectorAll(".set-row").length;
-
-    document.getElementById("remove-set-btn").style.display =
-        count > 1 ? "inline" : "none";
+function setRowHtml(setNumber, trackingType) {
+    if (trackingType === "weighted_reps") {
+        return `
+            <span class="set-label">Set ${setNumber}:</span>
+            <input type="number" name="reps" placeholder="reps" inputmode="numeric">
+            <input type="number" name="weight" placeholder="weight" inputmode="decimal">
+        `;
     }
+
+    if (trackingType === "bodyweight_reps") {
+        return `
+            <span class="set-label">Set ${setNumber}:</span>
+            <input type="number" name="reps" placeholder="reps" inputmode="numeric">
+        `;
+    }
+
+    if (trackingType === "timed_hold") {
+        return `
+            <span class="set-label">Set ${setNumber}:</span>
+            <input
+                type="text"
+                name="duration"
+                placeholder="00:00"
+                pattern="[0-9]+:[0-5][0-9]"
+            >
+        `;
+    }
+
+    return "";
+}
+
+function addSetRow(trackingType) {
+    const setNumber = setsContainer.querySelectorAll(".set-row").length + 1;
+
+    const row = document.createElement("div");
+    row.className = "set-row";
+    row.innerHTML = setRowHtml(setNumber, trackingType);
+
+    setsContainer.appendChild(row);
+
+    updateSetButtons();
+}
+
+function resetSetRows(trackingType) {
+    setsContainer.innerHTML = "";
+
+    for (let i = 0; i < MIN_SETS; i++) {
+        addSetRow(trackingType);
+    }
+}
 
 function renumberSets() {
-
-    const rows = document.querySelectorAll(".set-row");
+    const rows = setsContainer.querySelectorAll(".set-row");
 
     rows.forEach((row, index) => {
-        row.querySelector(".set-label").textContent =
-            `Set ${index + 1}:`;
+        const label = row.querySelector(".set-label");
+        if (label) {
+            label.textContent = `Set ${index + 1}:`;
+        }
     });
-
 }
 
-document
-    .getElementById("add-set-btn")
-    .addEventListener("click", function() {
+function updateSetButtons() {
+    const count = setsContainer.querySelectorAll(".set-row").length;
 
-        const container =
-            document.getElementById("sets-container");
+    removeSetBtn.style.display =
+        count > MIN_SETS ? "inline" : "none";
+}
 
-        const setNumber =
-            container.querySelectorAll(".set-row").length + 1;
+function updateFormForTrackingType() {
+    const trackingType = getSelectedTrackingType();
 
-        const row = document.createElement("div");
+    hideAllTrackingSections();
 
-        row.className = "set-row";
+    if (
+        trackingType === "weighted_reps" ||
+        trackingType === "bodyweight_reps" ||
+        trackingType === "timed_hold"
+    ) {
+        setsFields.style.display = "block";
+        enableInputs(setsFields);
 
-        row.innerHTML = `
-            <span class="set-label">
-                Set ${setNumber}:
-            </span>
-
-            <input type="number"
-                   name="reps"
-                   placeholder="reps">
-
-            <input type="number"
-                   name="weight"
-                   placeholder="weight">
-        `;
-
-        container.appendChild(row);
-
-        updateSetButtons();
-    });
-
-document
-    .getElementById("sets-container")
-    .addEventListener("click", function(e) {
-
-        if (!e.target.classList.contains("remove-set-btn")) {
-            return;
+        if (trackingType === "timed_hold") {
+            setsHeading.textContent = "Timed Holds";
+        } else {
+            setsHeading.textContent = "Sets";
         }
 
-        const rows =
-            document.querySelectorAll(".set-row");
-
-        if (rows.length === 1) {
-            return;
+        if (trackingType !== currentTrackingType) {
+            resetSetRows(trackingType);
         }
+    }
 
-        e.target.closest(".set-row").remove();
+    else if (trackingType === "distance_duration") {
+        distanceDurationFields.style.display = "block";
+        enableInputs(distanceDurationFields);
+    }
 
-        renumberSets();
+    else if (trackingType === "duration_only") {
+        durationOnlyFields.style.display = "block";
+        enableInputs(durationOnlyFields);
+    }
 
-    });
+    else if (trackingType === "notes_only") {
+        notesOnlyFields.style.display = "block";
+        enableInputs(notesOnlyFields);
+    }
 
-document
-    .getElementById("remove-set-btn")
-    .addEventListener("click", function() {
+    currentTrackingType = trackingType;
+}
 
-        const rows =
-            document.querySelectorAll(".set-row");
+exerciseSelect.addEventListener("change", updateFormForTrackingType);
 
-        if (rows.length <= 1) {
-            return;
-        }
+addSetBtn.addEventListener("click", function() {
+    addSetRow(currentTrackingType);
+});
 
-        rows[rows.length - 1].remove();
+removeSetBtn.addEventListener("click", function() {
+    const rows = setsContainer.querySelectorAll(".set-row");
 
-        renumberSets();
-        updateSetButtons();
-    });
+    if (rows.length <= MIN_SETS) {
+        return;
+    }
 
-updateSetButtons();
+    rows[rows.length - 1].remove();
+
+    renumberSets();
+    updateSetButtons();
+});
+
+updateFormForTrackingType();
 </script>
 
 {% endblock %}

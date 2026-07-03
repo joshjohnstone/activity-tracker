@@ -16,9 +16,31 @@ class Exercise(db.Model):
         nullable=False
     )
 
+    # Legacy column.
+    # Previously used for Push/Pull/Legs/etc.
+    # New code should prefer lift_category.   
     category = db.Column(
         db.String(50),
         nullable=False
+    )
+
+    activity_category = db.Column(
+        db.String(50),
+        nullable=False,
+        default="Strength",
+        server_default="Strength"
+    )
+
+    lift_category = db.Column(
+        db.String(50),
+        nullable=True
+    )
+
+    tracking_type = db.Column(
+        db.String(50),
+        nullable=False,
+        default="weighted_reps",
+        server_default="weighted_reps"
     )
 
     user_id = db.Column(
@@ -32,6 +54,14 @@ class Activity(db.Model):
     __tablename__ = "activities"
 
     id = db.Column(db.Integer, primary_key=True)
+
+    exercise_id = db.Column(
+        db.Integer,
+        db.ForeignKey("exercises.id"),
+        nullable=True
+    )   
+
+    exercise = db.relationship("Exercise")
 
     date = db.Column(
         db.String(20),

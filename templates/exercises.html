@@ -16,15 +16,33 @@
     <label for="name">Exercise Name:</label>
     <input type="text" name="name" required>
 
-    <label for="category">Category:</label>
-
-    <select name="category" required>
-        <option value="" disabled selected>Select category</option>
-
-        {% for category in EXERCISE_CATEGORIES %}
-            <option value="{{ category }}">{{ category }}</option>
+    <label for="activity_category">Activity Category:</label>
+    <select name="activity_category" id="activity_category">
+        {% for category in ACTIVITY_CATEGORIES %}
+            <option value="{{ category }}">
+                {{ category }}
+            </option>
         {% endfor %}
     </select>
+
+    <label for="lift_category">Lift Category:</label>
+    <select name="lift_category" id="lift_category">
+        <option value="">None</option>
+        {% for category in LIFT_CATEGORIES %}
+            <option value="{{ category }}">
+                {{ category }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <label for="tracking_type">Tracking Type:</label>
+    <select name="tracking_type" id="tracking_type">
+        {% for tracking_type in TRACKING_TYPES %}
+            <option value="{{ tracking_type }}">
+                {{ tracking_type }}
+            </option>
+        {% endfor %}
+    </select> 
 
     <button type="submit">Add Exercise</button>
 

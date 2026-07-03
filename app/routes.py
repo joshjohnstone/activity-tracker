@@ -2,8 +2,16 @@ import json
 from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
-from app.constants import EXERCISE_CATEGORIES, DISPLAY_FIELDS, DEFAULT_EXERCISES
 from app.models import db, User, Exercise, Activity
+from app.constants import (
+    ACTIVITY_CATEGORIES,
+    LIFT_CATEGORIES,
+    TRACKING_TYPES,
+    DISPLAY_FIELDS_BY_TRACKING_TYPE,
+    DISPLAY_FIELDS_BY_CATEGORY,
+    DEFAULT_EXERCISES
+)
+from app.utils import parse_duration_to_seconds
 
 bp = Blueprint("main", __name__)
 
@@ -14,93 +22,135 @@ def home():
 
     exercises = (
         Exercise.query
-        .order_by(Exercise.name)
         .filter_by(user_id=current_user.id)
-    )   
+        .order_by(
+            Exercise.activity_category,
+            Exercise.lift_category,
+            Exercise.name
+        )
+    ) 
 
     return render_template(
         "index.html", 
         today=today, 
         exercises=exercises,
-        EXERCISE_CATEGORIES=EXERCISE_CATEGORIES
+        LIFT_CATEGORIES=LIFT_CATEGORIES,
+        ACTIVITY_CATEGORIES=ACTIVITY_CATEGORIES
     )
 
 @bp.route("/submit", methods=["POST"])
 @login_required
 def submit():
 
-    form = request.form.to_dict()
+    form = request.form
 
     activity_date = form.get("date")
-    category = form.get("category")
+    exercise_id = form.get("exercise_id")
 
-    # Remove fields we already store separately
-    form.pop("date", None)
-    form.pop("category", None)
+    exercise_obj = Exercise.query.filter_by(
+        id=exercise_id,
+        user_id=current_user.id
+    ).first_or_404()
 
-    # ---- SPECIAL HANDLING FOR STRENGTH ----
-    if category == "Strength":
+    activity_category = exercise_obj.activity_category
+    tracking_type = exercise_obj.tracking_type
 
-        exercise = form.get("exercise")
+    details = {
+        "exercise_id": exercise_obj.id,
+        "exercise": exercise_obj.name,
+        "activity_category": exercise_obj.activity_category,
+        "lift_category": exercise_obj.lift_category,
+        "tracking_type": exercise_obj.tracking_type,
+    }
 
-        reps_list = request.form.getlist("reps")
-        weight_list = request.form.getlist("weight")       
+    if tracking_type == "weighted_reps":
+
+        reps_list = form.getlist("reps")
+        weight_list = form.getlist("weight")
 
         sets = []
 
         for reps, weight in zip(reps_list, weight_list):
-
             if reps or weight:
                 sets.append({
                     "reps": reps,
                     "weight": weight
                 })
 
-        details = {
-            "exercise": exercise,
-            "sets": sets
-        }
+        details["sets"] = sets
 
-    # ---- SPECIAL HANDLING FOR RUNNING ----
-    elif category == "Running":
-        try:
-            distance = float(form.get("distance", 0))
-            duration_str = float(form.get("duration", "0:00"))
+    elif tracking_type == "bodyweight_reps":
 
-            minutes, seconds = duration_str.split(":")
-            duration = (60 * minutes) + seconds
+        reps_list = form.getlist("reps")
 
-            # pace = minutes per mile
-            pace = None
-            if distance > 0:
-                pace = duration / distance / 60
+        sets = []
 
-            details = {
-                "distance": distance,
-                "duration": duration,
-                "pace": pace 
-            }
+        for reps in reps_list:
+            if reps:
+                sets.append({
+                    "reps": reps
+                })
 
-        except ValueError:
-            details = {
-                "distance": form.get("distance"),
-                "duration": form.get("duration"),
-                "pace": None
-            }
-    else:
-        details = form
+        details["sets"] = sets
+
+    elif tracking_type == "timed_hold":
+
+        duration_list = form.getlist("duration")
+
+        sets = []
+
+        for duration in duration_list:
+            if duration:
+                sets.append({
+                    "duration_seconds": parse_duration_to_seconds(duration)
+                })
+
+        details["sets"] = sets
+
+    elif tracking_type == "duration_only":
+
+        duration = form.get("duration")
+
+        details["duration_seconds"] = parse_duration_to_seconds(duration)
+        details["notes"] = form.get("notes")
+
+    elif tracking_type == "distance_duration":
+
+        distance = float(form.get("distance") or 0)
+        duration_seconds = parse_duration_to_seconds(
+            form.get("duration")
+        )
+
+        pace = None
+        if distance > 0 and duration_seconds:
+            # pace in minutes per mile
+            pace = (duration_seconds / 60) / distance
+
+        details.update({
+            "distance": distance,
+            "duration_seconds": duration_seconds,
+            "pace": pace,
+            "run_location": form.get("run_location"),
+            "distance_unit": form.get("distance_unit"),
+            "strokes": form.get("strokes"),
+        })
+
+    elif tracking_type == "notes_only":
+
+        details["notes"] = form.get("notes")
 
     activity = Activity(
         date=activity_date,
-        category=category,
+        category=activity_category,
+        exercise_id=exercise_obj.id,
         details=json.dumps(details),
         user_id=current_user.id
     )
 
     db.session.add(activity)
-    db.session.commit()   
+    db.session.commit()
 
-    flash(f"{category} activity saved successfully.")
+    flash(f"{exercise_obj.name} activity saved successfully.")
     return redirect(url_for("main.home"))
 
 @bp.route("/history")
@@ -110,8 +160,6 @@ def history():
     category = request.args.get("category")
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
-
-
 
     if category and category != "All":
         query = query.filter(Activity.category == category)
@@ -137,7 +185,20 @@ def history():
         weekday = datetime.strptime(date_key, "%Y-%m-%d").strftime("%A")
 
         # Apply display filter
-        allowed_fields = DISPLAY_FIELDS.get(category, [])
+        tracking_type = details.get("tracking_type")
+
+        if tracking_type:
+            allowed_fields = DISPLAY_FIELDS_BY_TRACKING_TYPE.get(
+                tracking_type,
+                []
+            )
+        else:
+            # Legacy fallback for older activities
+            allowed_fields = DISPLAY_FIELDS_BY_CATEGORY.get(
+                category,
+                []
+            )
+
         filtered_details = {
             k: v for k, v in details.items()
             if k in allowed_fields
@@ -322,7 +383,9 @@ def exercises():
     return render_template(
         "exercises.html",
         exercises=exercises,
-        EXERCISE_CATEGORIES=EXERCISE_CATEGORIES
+        ACTIVITY_CATEGORIES=ACTIVITY_CATEGORIES,
+        LIFT_CATEGORIES=LIFT_CATEGORIES,
+        TRACKING_TYPES=TRACKING_TYPES
     )
 
 @bp.route("/add_exercise", methods=["POST"])
@@ -330,11 +393,15 @@ def exercises():
 def add_exercise():
 
     name = request.form.get("name")
-    category = request.form.get("category")
+    activity_category = request.form.get("activity_category")
+    lift_category = request.form.get("lift_category") or None
+    tracking_type = request.form.get("tracking_type")
 
     exercise = Exercise(
         name=name,
-        category=category,
+        activity_category=activity_category,
+        lift_category=lift_category,
+        tracking_type=tracking_type,
         user_id=current_user.id
     )
 
@@ -376,11 +443,13 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        for name, category in DEFAULT_EXERCISES:
+        for name, activity_category, lift_category, tracking_type in DEFAULT_EXERCISES:
             db.session.add(
                 Exercise(
                     name=name,
-                    category=category,
+                    activity_category=activity_category,
+                    lift_category=lift_category,
+                    tracking_type=tracking_type,
                     user_id=user.id
                 )
             )
