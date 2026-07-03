@@ -1,6 +1,6 @@
 import json
 from datetime import date, datetime, timedelta
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models import db, User, Exercise, Activity
 from app.constants import (
@@ -14,6 +14,87 @@ from app.constants import (
 from app.utils import parse_duration_to_seconds
 
 bp = Blueprint("main", __name__)
+
+def summarize_activity_details(details):
+    tracking_type = details.get("tracking_type")
+
+    if tracking_type == "weighted_reps":
+        sets = details.get("sets", [])
+
+        parts = []
+        for s in sets:
+            reps = s.get("reps")
+            weight = s.get("weight")
+            if reps or weight:
+                parts.append(f"{reps} reps × {weight} lbs")
+
+        return parts
+
+    if tracking_type == "bodyweight_reps":
+        sets = details.get("sets", [])
+
+        parts = []
+        for s in sets:
+            reps = s.get("reps")
+            if reps:
+                parts.append(f"{reps} reps")
+
+        return parts
+
+    if tracking_type == "timed_hold":
+        sets = details.get("sets", [])
+
+        parts = []
+        for s in sets:
+            seconds = s.get("duration_seconds")
+            if seconds:
+                minutes = int(seconds) // 60
+                remainder = int(seconds) % 60
+                parts.append(f"{minutes}:{remainder:02d}")
+
+        return parts
+
+    if tracking_type == "distance_duration":
+        distance = details.get("distance")
+        unit = details.get("distance_unit") or "miles"
+        duration_seconds = details.get("duration_seconds")
+        pace = details.get("pace")
+
+        parts = []
+
+        if distance:
+            parts.append(f"Distance: {distance} {unit}")
+
+        if duration_seconds:
+            minutes = int(duration_seconds) // 60
+            seconds = int(duration_seconds) % 60
+            parts.append(f"Duration: {minutes}:{seconds:02d}")
+
+        if pace:
+            pace_minutes = int(pace)
+            pace_seconds = int(round((pace - pace_minutes) * 60))
+            parts.append(f"Pace: {pace_minutes}:{pace_seconds:02d} / mile")
+
+        return parts
+
+    if tracking_type == "duration_only":
+        seconds = details.get("duration_seconds")
+        notes = details.get("notes")
+
+        parts = []
+
+        if seconds:
+            minutes = int(seconds) // 60
+            remainder = int(seconds) % 60
+            parts.append(f"Duration: {minutes}:{remainder:02d}")
+
+        if notes:
+            parts.append(f"Notes: {notes}")
+
+        return parts
+
+    return []
+
 
 @bp.route("/")
 @login_required
@@ -152,6 +233,44 @@ def submit():
 
     flash(f"{exercise_obj.name} activity saved successfully.")
     return redirect(url_for("main.home"))
+
+@bp.route("/last_activity/<int:exercise_id>")
+@login_required
+def last_activity(exercise_id):
+
+    exercise = Exercise.query.filter_by(
+        id=exercise_id,
+        user_id=current_user.id
+    ).first_or_404()
+
+    activity = (
+        Activity.query
+        .filter_by(
+            user_id=current_user.id,
+            exercise_id=exercise.id
+        )
+        .order_by(
+            Activity.date.desc(),
+            Activity.id.desc()
+        )
+        .first()
+    )
+
+    if not activity:
+        return jsonify({
+            "found": False,
+            "message": f"No previous {exercise.name} activity found."
+        })
+
+    details = json.loads(activity.details)
+
+    return jsonify({
+        "found": True,
+        "exercise": exercise.name,
+        "date": activity.date,
+        "tracking_type": details.get("tracking_type"),
+        "summary": summarize_activity_details(details)
+    })
 
 @bp.route("/history")
 @login_required

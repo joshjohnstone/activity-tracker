@@ -58,6 +58,14 @@
         <a href="{{ url_for('main.exercises') }}">Add or manage activities here</a>.
     </p>
 
+    <div id="last-activity-card" class="last-activity-card">
+        <p id="last-activity-message">
+            Select an activity to see your most recent entry.
+        </p>
+
+        <ul id="last-activity-summary"></ul>
+    </div>
+
     <br>
 
     <!-- SET-BASED FIELDS -->
@@ -338,7 +346,10 @@ function updateFormForTrackingType() {
     currentTrackingType = trackingType;
 }
 
-exerciseSelect.addEventListener("change", updateFormForTrackingType);
+exerciseSelect.addEventListener("change", function() {
+    updateFormForTrackingType();
+    updateLastActivityCard();
+});
 
 addSetBtn.addEventListener("click", function() {
     addSetRow(currentTrackingType);
@@ -358,6 +369,47 @@ removeSetBtn.addEventListener("click", function() {
 });
 
 updateFormForTrackingType();
+
+const lastActivityMessage = document.getElementById("last-activity-message");
+const lastActivitySummary = document.getElementById("last-activity-summary");
+
+function updateLastActivityCard() {
+    const exerciseId = exerciseSelect.value;
+
+    if (!exerciseId) {
+        lastActivityMessage.textContent =
+            "Select an activity to see your most recent entry.";
+        lastActivitySummary.innerHTML = "";
+        return;
+    }
+
+    fetch(`/last_activity/${exerciseId}`)
+        .then(response => response.json())
+        .then(data => {
+            lastActivitySummary.innerHTML = "";
+
+            if (!data.found) {
+                lastActivityMessage.textContent = data.message;
+                return;
+            }
+
+            lastActivityMessage.textContent =
+                `Last ${data.exercise}: ${data.date}`;
+
+            data.summary.forEach(item => {
+                const li = document.createElement("li");
+                li.textContent = item;
+                lastActivitySummary.appendChild(li);
+            });
+        })
+        .catch(() => {
+            lastActivityMessage.textContent =
+                "Could not load previous activity.";
+            lastActivitySummary.innerHTML = "";
+        });
+}
+
+updateLastActivityCard()
 </script>
 
 {% endblock %}
