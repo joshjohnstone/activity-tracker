@@ -255,6 +255,27 @@ def last_activity(exercise_id):
         )
         .first()
     )
+    
+    if not activity:
+        legacy_activities = (
+            Activity.query
+            .filter_by(user_id=current_user.id)
+            .order_by(
+                Activity.date.desc(),
+                Activity.id.desc()
+            )
+            .all()
+        )
+
+        for candidate in legacy_activities:
+            try:
+                details = json.loads(candidate.details or "{}")
+            except json.JSONDecodeError:
+                continue
+
+            if details.get("exercise") == exercise.name:
+                activity = candidate
+                break
 
     if not activity:
         return jsonify({
