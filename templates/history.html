@@ -17,32 +17,54 @@
 
         <h3>Filters</h3>
 
-        <!-- CATEGORY FILTER -->
-        <label>Category:</label>
-        <select name="category">
-
+        <label for="activity-category-filter">Activity Category:</label>
+        <select id="activity-category-filter" name="activity_category">
             <option value="All">All</option>
 
-            <option value="Running"
-                {% if category == "Running" %}selected{% endif %}>
-                Running
-            </option>
-
-            <option value="Strength"
-                {% if category == "Strength" %}selected{% endif %}>
-                Strength
-            </option>
-
-            <option value="Mobility"
-                {% if category == "Mobility" %}selected{% endif %}>
-                Mobility
-            </option>
-
+            {% for category in ACTIVITY_CATEGORIES %}
+                <option value="{{ category }}"
+                    {% if activity_category == category %}selected{% endif %}>
+                    {{ category }}
+                </option>
+            {% endfor %}
         </select>
 
         <br><br>
 
-        <!-- DATE RANGE -->
+        <div id="lift-category-filter-wrapper">
+            <label for="lift-category-filter">Lift Category:</label>
+            <select id="lift-category-filter" name="lift_category">
+                <option value="All">All</option>
+
+                {% for category in LIFT_CATEGORIES %}
+                    <option value="{{ category }}"
+                        {% if lift_category == category %}selected{% endif %}>
+                        {{ category }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <br><br>
+        </div>
+
+        <label for="exercise-filter">Activity:</label>
+        <select id="exercise-filter" name="exercise_id">
+            <option value="All">All</option>
+
+            {% for exercise in exercises %}
+                <option
+                    value="{{ exercise.id }}"
+                    data-activity-category="{{ exercise.activity_category }}"
+                    data-lift-category="{{ exercise.lift_category or '' }}"
+                    {% if exercise_id|string == exercise.id|string %}selected{% endif %}
+                >
+                    {{ exercise.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <br><br>
+
         <label>Start Date:</label>
         <input type="date" name="start_date" value="{{ start_date or '' }}">
 
@@ -75,48 +97,81 @@
 
                 <div class="history-entry">
 
-                    <strong>{{ entry.category }}</strong>
+                    <strong>{{ entry.exercise }}</strong>
+
+                    <div class="history-meta">
+                        {{ entry.category }}
+                        {% if entry.lift_category %}
+                            • {{ entry.lift_category }}
+                        {% endif %}
+                    </div>
 
                     <div class="history-details">
 
-                        {% if entry.category == "Running" %}
-                            <div class="running-entry">
+                        {% if entry.tracking_type == "weighted_reps" %}
 
-                                {{ entry.details.distance }} miles
-                                • {{ entry.details.duration }} min
+                            <div class="set-list">
+                                {% for s in entry.details.sets %}
+                                    <div class="set-row">
+                                        {{ s.reps }} reps × {{ s.weight }} lbs
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                        {% elif entry.tracking_type == "bodyweight_reps" %}
+
+                            <div class="set-list">
+                                {% for s in entry.details.sets %}
+                                    <div class="set-row">
+                                        {{ s.reps }} reps
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                        {% elif entry.tracking_type == "timed_hold" %}
+
+                            <div class="set-list">
+                                {% for s in entry.details.sets %}
+                                    <div class="set-row">
+                                        {{ s.duration_seconds }} seconds
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                        {% elif entry.tracking_type == "distance_duration" %}
+
+                            <div class="cardio-entry">
+                                {{ entry.details.distance }}
+                                {{ entry.details.distance_unit or "miles" }}
+
+                                {% if entry.details.duration_seconds %}
+                                    • {{ entry.details.duration_seconds }} seconds
+                                {% endif %}
 
                                 {% if entry.details.pace %}
                                     • {{ format_pace(entry.details.pace) }}
                                 {% endif %}
-
                             </div>
 
-                        {% elif entry.category == "Strength" %}
+                        {% elif entry.tracking_type == "duration_only" %}
 
-                            <div class="exercise-name">
-                                {{ entry.details.exercise }}
+                            <div class="duration-entry">
+                                {{ entry.details.duration_seconds }} seconds
+
+                                {% if entry.details.notes %}
+                                    • {{ entry.details.notes }}
+                                {% endif %}
                             </div>
 
-                            <div class="set-list">
+                        {% else %}
 
-                                {% for s in entry.details.sets %}
+                            <pre>{{ entry.details }}</pre>
 
-                                    <div class="set-row">
-                                        {{ s.reps }} reps × {{ s.weight }} lbs
-                                    </div>
-
-                                {% endfor %}
-
-                            </div>
-
-                        {% elif entry.category == "Mobility" %}
-                            {{ entry.details.mobility_duration }} min
                         {% endif %}
 
                     </div>
 
                 </div>
-
             {% endfor %}
 
         </div>
@@ -135,6 +190,90 @@ function toggleDay(header) {
     content.style.display =
         content.style.display === "none" ? "block" : "none";
 }
+
+const activityCategoryFilter =
+    document.getElementById("activity-category-filter");
+
+const liftCategoryFilter =
+    document.getElementById("lift-category-filter");
+
+const liftCategoryFilterWrapper =
+    document.getElementById("lift-category-filter-wrapper");
+
+const exerciseFilter =
+    document.getElementById("exercise-filter");
+
+const allExerciseFilterOptions =
+    Array.from(exerciseFilter.options).map(option => ({
+        value: option.value,
+        text: option.text,
+        activityCategory: option.dataset.activityCategory || "",
+        liftCategory: option.dataset.liftCategory || "",
+        selected: option.selected
+    }));
+
+function updateLiftCategoryVisibility() {
+    if (activityCategoryFilter.value === "Strength") {
+        liftCategoryFilterWrapper.style.display = "block";
+    } else {
+        liftCategoryFilterWrapper.style.display = "none";
+        liftCategoryFilter.value = "All";
+    }
+}
+
+function rebuildHistoryExerciseFilter() {
+    updateLiftCategoryVisibility();
+
+    const selectedActivityCategory = activityCategoryFilter.value;
+    const selectedLiftCategory = liftCategoryFilter.value;
+    const currentExerciseId = exerciseFilter.value;
+
+    const filtered = allExerciseFilterOptions.filter(option => {
+        if (option.value === "All") {
+            return true;
+        }
+
+        const matchesActivityCategory =
+            selectedActivityCategory === "All" ||
+            option.activityCategory === selectedActivityCategory;
+
+        const matchesLiftCategory =
+            selectedLiftCategory === "All" ||
+            option.liftCategory === selectedLiftCategory;
+
+        return matchesActivityCategory && matchesLiftCategory;
+    });
+
+    exerciseFilter.innerHTML = "";
+
+    filtered.forEach(optionData => {
+        const option = document.createElement("option");
+
+        option.value = optionData.value;
+        option.textContent = optionData.text;
+
+        option.dataset.activityCategory = optionData.activityCategory;
+        option.dataset.liftCategory = optionData.liftCategory;
+
+        if (optionData.value === currentExerciseId) {
+            option.selected = true;
+        }
+
+        exerciseFilter.appendChild(option);
+    });
+}
+
+activityCategoryFilter.addEventListener("change", function() {
+    exerciseFilter.value = "All";
+    rebuildHistoryExerciseFilter();
+});
+
+liftCategoryFilter.addEventListener("change", function() {
+    exerciseFilter.value = "All";
+    rebuildHistoryExerciseFilter();
+});
+
+rebuildHistoryExerciseFilter();
 </script>
 
 {% endblock %}

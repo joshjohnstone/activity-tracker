@@ -255,7 +255,7 @@ def last_activity(exercise_id):
         )
         .first()
     )
-    
+
     if not activity:
         legacy_activities = (
             Activity.query
@@ -297,12 +297,37 @@ def last_activity(exercise_id):
 @login_required
 def history():
 
-    category = request.args.get("category")
+    activity_category = request.args.get("activity_category", "All")
+    lift_category = request.args.get("lift_category", "All")
+    exercise_id = request.args.get("exercise_id", "All")
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
 
-    if category and category != "All":
-        query = query.filter(Activity.category == category)
+    exercises = (
+        Exercise.query
+        .filter_by(user_id=current_user.id)
+        .order_by(
+            Exercise.activity_category,
+            Exercise.lift_category,
+            Exercise.name
+        )
+        .all()
+    )
+
+    query = (
+        Activity.query
+        .outerjoin(Exercise, Activity.exercise_id == Exercise.id)
+        .filter(Activity.user_id == current_user.id)
+    )
+
+    if activity_category and activity_category != "All":
+        query = query.filter(Exercise.activity_category == activity_category)
+
+    if lift_category and lift_category != "All":
+        query = query.filter(Exercise.lift_category == lift_category)
+
+    if exercise_id and exercise_id != "All":
+        query = query.filter(Activity.exercise_id == int(exercise_id))
 
     if start_date:
         query = query.filter(Activity.date >= start_date)
@@ -310,22 +335,38 @@ def history():
     if end_date:
         query = query.filter(Activity.date <= end_date)
 
-    rows = Activity.query.order_by(
-        Activity.date.desc()).filter_by(user_id=current_user.id
-    )
+    rows = query.order_by(
+        Activity.date.desc(),
+        Activity.id.desc()
+    ).all()
 
-    # ---- GROUP BY DATE ----
     grouped = {}
 
     for row in rows:
 
         date_key = row.date
-        category = row.category
-        details = json.loads(row.details)
+        details = json.loads(row.details or "{}")
         weekday = datetime.strptime(date_key, "%Y-%m-%d").strftime("%A")
 
-        # Apply display filter
         tracking_type = details.get("tracking_type")
+        row_exercise = row.exercise
+
+        display_category = (
+            details.get("activity_category")
+            or getattr(row_exercise, "activity_category", None)
+            or row.category
+        )
+
+        display_exercise = (
+            details.get("exercise")
+            or getattr(row_exercise, "name", None)
+            or display_category
+        )
+
+        display_lift_category = (
+            details.get("lift_category")
+            or getattr(row_exercise, "lift_category", None)
+        )
 
         if tracking_type:
             allowed_fields = DISPLAY_FIELDS_BY_TRACKING_TYPE.get(
@@ -333,9 +374,8 @@ def history():
                 []
             )
         else:
-            # Legacy fallback for older activities
             allowed_fields = DISPLAY_FIELDS_BY_CATEGORY.get(
-                category,
+                row.category,
                 []
             )
 
@@ -346,61 +386,62 @@ def history():
 
         activity = {
             "id": row.id,
-            "category": category,
+            "category": display_category,
+            "exercise": display_exercise,
+            "lift_category": display_lift_category,
+            "tracking_type": tracking_type,
             "details": filtered_details
         }
 
-        # Initialize day if needed
         if date_key not in grouped:
             grouped[date_key] = {
                 "date": date_key,
                 "weekday": weekday,
                 "activities": [],
                 "summary": {
-                    "running_distance": 0.0,
-                    "strength_volume": 0.0,
-                    "mobility_minutes": 0.0,
                     "counts": {
-                        "Running": 0,
-                        "Strength": 0,
-                        "Mobility": 0
-                    }
+                        category: 0 for category in ACTIVITY_CATEGORIES
+                    },
+                    "strength_volume": 0.0,
+                    "cardio_distance": 0.0,
+                    "mobility_minutes": 0.0,
                 }
             }
 
         day = grouped[date_key]
-
         day["activities"].append(activity)
 
-        # ---- SUMMARY LOGIC ----
-        day["summary"]["counts"][category] += 1
+        if display_category not in day["summary"]["counts"]:
+            day["summary"]["counts"][display_category] = 0
 
-        if category == "Running":
-            try:
-                day["summary"]["running_distance"] += float(details.get("distance", 0))
-            except ValueError:
-                pass
+        day["summary"]["counts"][display_category] += 1
 
-        elif category == "Strength":
+        if tracking_type == "weighted_reps":
             try:
                 sets_data = details.get("sets", [])
 
                 for s in sets_data:
                     reps = int(s.get("reps", 0) or 0)
                     weight = float(s.get("weight", 0) or 0)
-
                     day["summary"]["strength_volume"] += reps * weight
 
             except (ValueError, TypeError):
                 pass
 
-        elif category == "Mobility":
+        elif tracking_type == "distance_duration":
             try:
-                day["summary"]["mobility_minutes"] += float(details.get("mobility_duration", 0))
-            except ValueError:
+                distance = float(details.get("distance", 0) or 0)
+                day["summary"]["cardio_distance"] += distance
+            except (ValueError, TypeError):
                 pass
 
-    # ---- SORT DAYS (important for consistent display) ----
+        elif tracking_type == "duration_only":
+            try:
+                duration_seconds = int(details.get("duration_seconds", 0) or 0)
+                day["summary"]["mobility_minutes"] += duration_seconds / 60
+            except (ValueError, TypeError):
+                pass
+
     grouped_sorted = dict(
         sorted(grouped.items(), reverse=True)
     )
@@ -408,7 +449,12 @@ def history():
     return render_template(
         "history.html",
         grouped=grouped_sorted,
-        category=category,
+        exercises=exercises,
+        ACTIVITY_CATEGORIES=ACTIVITY_CATEGORIES,
+        LIFT_CATEGORIES=LIFT_CATEGORIES,
+        activity_category=activity_category,
+        lift_category=lift_category,
+        exercise_id=exercise_id,
         start_date=start_date,
         end_date=end_date
     )
