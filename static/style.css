@@ -249,6 +249,25 @@ td {
     padding-left: 20px;
 }
 
+.entry-actions {
+    margin-top: 8px;
+    font-size: 0.9em;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #0645ad;
+    text-decoration: underline;
+    cursor: pointer;
+    font: inherit;
+}
+
+.link-button:hover {
+    color: #0b0080;
+}
+
 /* Mobile tweaks */
 
 @media (max-width: 600px) {

@@ -234,6 +234,21 @@ def submit():
     flash(f"{exercise_obj.name} activity saved successfully.")
     return redirect(url_for("main.home"))
 
+@bp.route("/delete_activity/<int:id>", methods=["POST"])
+@login_required
+def delete_activity(id):
+
+    activity = Activity.query.filter_by(
+        id=id,
+        user_id=current_user.id
+    ).first_or_404()
+
+    db.session.delete(activity)
+    db.session.commit()
+
+    flash("Activity deleted successfully.")
+    return redirect(url_for("main.history"))
+
 @bp.route("/last_activity/<int:exercise_id>")
 @login_required
 def last_activity(exercise_id):

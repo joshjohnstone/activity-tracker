@@ -171,6 +171,21 @@
 
                     </div>
 
+                    <div class="entry-actions">
+
+                        <form
+                            action="{{ url_for('main.delete_activity', id=entry.id) }}"
+                            method="POST"
+                            style="display:inline;"
+                            onsubmit="return confirm('Delete this activity?');"
+                        >
+                            <button type="submit" class="link-button">
+                                Delete
+                            </button>
+                        </form>
+
+                    </div>                    
+
                 </div>
             {% endfor %}
 
