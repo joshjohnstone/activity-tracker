@@ -250,22 +250,28 @@ td {
 }
 
 .entry-actions {
-    margin-top: 8px;
-    font-size: 0.9em;
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
 }
 
-.link-button {
+.entry-actions form {
+    margin: 0;
+}
+
+.danger-link {
     background: none;
     border: none;
-    padding: 0;
-    color: #0645ad;
+    padding: 4px 0;
+    color: #a33;
+    font: inherit;
+    font-size: 0.85rem;
     text-decoration: underline;
     cursor: pointer;
-    font: inherit;
 }
 
-.link-button:hover {
-    color: #0b0080;
+.danger-link:hover {
+    color: #700;
 }
 
 /* Mobile tweaks */
