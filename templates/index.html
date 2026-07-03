@@ -21,37 +21,62 @@
 
     <br><br>
 
+    <!-- ACTIVITY FILTERS -->
+    <label for="activity-category-filter">Activity Category:</label>
+    <select id="activity-category-filter">
+        <option value="All">All</option>
+
+        {% for category in ACTIVITY_CATEGORIES %}
+            <option value="{{ category }}"
+                    {% if category == "Strength" %}selected{% endif %}>
+                {{ category }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+
+    <div id="lift-category-filter-wrapper">
+        <label for="lift-category-filter">Lift Category:</label>
+        <select id="lift-category-filter">
+            <option value="All">All</option>
+
+            {% for category in LIFT_CATEGORIES %}
+                <option value="{{ category }}">
+                    {{ category }}
+                </option>
+            {% endfor %}
+        </select>
+        <br><br>
+    </div>
+
+    <label for="exercise-search">Search:</label>
+    <input
+        type="text"
+        id="exercise-search"
+        placeholder="Search activities..."
+    >
+
+    <br><br>
+
     <!-- ACTIVITY / EXERCISE TEMPLATE -->
     <label for="exercise">Activity:</label>
 
     <select id="exercise" name="exercise_id" required>
 
-        {% for activity_category in ACTIVITY_CATEGORIES %}
-
-            <optgroup label="{{ activity_category }}">
-
-                {% for exercise in exercises %}
-                    {% if exercise.activity_category == activity_category %}
-
-                        <option
-                            value="{{ exercise.id }}"
-                            data-tracking-type="{{ exercise.tracking_type }}"
-                            data-activity-category="{{ exercise.activity_category }}"
-                        >
-                            {{ exercise.name }}
-                            {% if exercise.lift_category %}
-                                ({{ exercise.lift_category }})
-                            {% endif %}
-                        </option>
-
-                    {% endif %}
-                {% endfor %}
-
-            </optgroup>
-
+        {% for exercise in exercises %}
+            <option
+                value="{{ exercise.id }}"
+                data-name="{{ exercise.name }}"
+                data-activity-category="{{ exercise.activity_category }}"
+                data-lift-category="{{ exercise.lift_category or '' }}"
+                data-tracking-type="{{ exercise.tracking_type }}"
+            >
+                {{ exercise.name }}
+            </option>
         {% endfor %}
 
-    </select>
+    </select>    
 
     <p class="helper-text">
         Don't see the activity you're looking for?
@@ -410,6 +435,100 @@ function updateLastActivityCard() {
 }
 
 updateLastActivityCard()
+
+const activityCategoryFilter =
+    document.getElementById("activity-category-filter");
+
+const liftCategoryFilter =
+    document.getElementById("lift-category-filter");
+
+const exerciseSearch =
+    document.getElementById("exercise-search");
+
+const allExerciseOptions =
+    Array.from(exerciseSelect.options).map(option => ({
+        value: option.value,
+        text: option.text,
+        name: option.dataset.name || option.text,
+        activityCategory: option.dataset.activityCategory,
+        liftCategory: option.dataset.liftCategory,
+        trackingType: option.dataset.trackingType
+    }));
+
+const liftCategoryFilterWrapper =
+    document.getElementById("lift-category-filter-wrapper");
+
+function updateLiftCategoryVisibility() {
+    if (activityCategoryFilter.value === "Strength") {
+        liftCategoryFilterWrapper.style.display = "block";
+    } else {
+        liftCategoryFilterWrapper.style.display = "none";
+        liftCategoryFilter.value = "All";
+    }
+}
+
+function rebuildExerciseDropdown() {
+    updateLiftCategoryVisibility();
+    const selectedActivityCategory = activityCategoryFilter.value;
+    const selectedLiftCategory = liftCategoryFilter.value;
+    const searchText = exerciseSearch.value.toLowerCase().trim();
+
+    const filtered = allExerciseOptions.filter(option => {
+        const matchesActivityCategory =
+            selectedActivityCategory === "All" ||
+            option.activityCategory === selectedActivityCategory;
+
+        const matchesLiftCategory =
+            selectedLiftCategory === "All" ||
+            option.liftCategory === selectedLiftCategory;
+
+        const matchesSearch =
+            !searchText ||
+            option.name.toLowerCase().includes(searchText);
+
+        return (
+            matchesActivityCategory &&
+            matchesLiftCategory &&
+            matchesSearch
+        );
+    });
+
+    exerciseSelect.innerHTML = "";
+
+    filtered.forEach(optionData => {
+        const option = document.createElement("option");
+
+        option.value = optionData.value;
+        option.textContent = optionData.text;
+
+        option.dataset.name = optionData.name;
+        option.dataset.activityCategory = optionData.activityCategory;
+        option.dataset.liftCategory = optionData.liftCategory;
+        option.dataset.trackingType = optionData.trackingType;
+
+        exerciseSelect.appendChild(option);
+    });
+
+    if (filtered.length > 0) {
+        exerciseSelect.selectedIndex = 0;
+        updateFormForTrackingType();
+        updateLastActivityCard();
+    }
+}
+
+activityCategoryFilter.addEventListener("change", function() {
+    if (activityCategoryFilter.value !== "Strength") {
+        liftCategoryFilter.value = "All";
+    }
+
+    rebuildExerciseDropdown();
+});
+
+liftCategoryFilter.addEventListener("change", rebuildExerciseDropdown);
+exerciseSearch.addEventListener("input", rebuildExerciseDropdown);
+
+rebuildExerciseDropdown();
+
 </script>
 
 {% endblock %}
