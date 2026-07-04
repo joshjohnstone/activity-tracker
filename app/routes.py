@@ -484,6 +484,7 @@ def analytics():
     exercise_time_series_by_id = {}
     exercise_metadata_by_id = {}
     recent_sessions_by_exercise_id = {}
+    prs_by_exercise_id = {}
 
     today = datetime.today().date()
 
@@ -649,6 +650,89 @@ def analytics():
 
         return ", ".join(parts) if parts else "No set details"
 
+    def empty_weighted_prs():
+        return {
+            "heaviest_set": None,
+            "best_estimated_1rm": None,
+            "highest_session_volume": None,
+            "most_reps": None,
+        }
+
+
+    def estimate_1rm_epley(weight, reps):
+        """
+        Epley estimate:
+        estimated 1RM = weight * (1 + reps / 30)
+
+        Only estimate when weight and reps are positive.
+        """
+        if weight <= 0 or reps <= 0:
+            return 0
+
+        return weight * (1 + reps / 30)
+
+
+    def update_weighted_prs(prs, date_str, parsed_sets, daily_volume):
+        """
+        Update weighted PRs for one exercise using a single logged session.
+        """
+        # Highest session volume
+        if daily_volume > 0:
+            current = prs["highest_session_volume"]
+
+            if current is None or daily_volume > current["volume"]:
+                prs["highest_session_volume"] = {
+                    "date": date_str,
+                    "volume": daily_volume,
+                }
+
+        for s in parsed_sets:
+            reps = s["reps"]
+            weight = s["weight"]
+
+            if reps <= 0 and weight <= 0:
+                continue
+
+            # Heaviest set
+            current = prs["heaviest_set"]
+
+            if (
+                current is None
+                or weight > current["weight"]
+                or (weight == current["weight"] and reps > current["reps"])
+            ):
+                prs["heaviest_set"] = {
+                    "date": date_str,
+                    "reps": reps,
+                    "weight": weight,
+                }
+
+            # Best estimated 1RM
+            estimated_1rm = estimate_1rm_epley(weight, reps)
+            current = prs["best_estimated_1rm"]
+
+            if current is None or estimated_1rm > current["estimated_1rm"]:
+                prs["best_estimated_1rm"] = {
+                    "date": date_str,
+                    "reps": reps,
+                    "weight": weight,
+                    "estimated_1rm": estimated_1rm,
+                }
+
+            # Most reps in a single set
+            current = prs["most_reps"]
+
+            if (
+                current is None
+                or reps > current["reps"]
+                or (reps == current["reps"] and weight > current["weight"])
+            ):
+                prs["most_reps"] = {
+                    "date": date_str,
+                    "reps": reps,
+                    "weight": weight,
+                }
+
     for row in rows:
         details = parse_details(row.details)
 
@@ -714,14 +798,21 @@ def analytics():
 
             sets_data = details.get("sets", [])
             daily_volume = 0
+            parsed_sets = []
 
             for s in sets_data:
                 try:
                     reps = int(s.get("reps") or 0)
                     weight = float(s.get("weight") or 0)
-                    daily_volume += reps * weight
                 except (ValueError, TypeError, AttributeError):
-                    pass
+                    continue
+
+                daily_volume += reps * weight
+
+                parsed_sets.append({
+                    "reps": reps,
+                    "weight": weight,
+                })
 
             if exercise_obj:
                 exercise_id_key = str(exercise_obj.id)
@@ -747,6 +838,22 @@ def analytics():
                     "summary": format_weighted_set_summary(sets_data),
                     "volume": daily_volume,
                 })
+
+            # ---- PERSONAL RECORDS ----
+            if exercise_obj and activity_date:
+                exercise_id_key = str(exercise_obj.id)
+
+                prs = prs_by_exercise_id.setdefault(
+                    exercise_id_key,
+                    empty_weighted_prs()
+                )
+
+                update_weighted_prs(
+                    prs=prs,
+                    date_str=date_str,
+                    parsed_sets=parsed_sets,
+                    daily_volume=daily_volume,
+                )
 
             # ---- TIME SERIES: per exercise ----
             exercise_time_series.setdefault(exercise_name, {})
@@ -860,7 +967,8 @@ def analytics():
         chart_exercises=chart_exercises,
         default_chart_exercise_id=default_chart_exercise_id,
 
-        recent_sessions_by_exercise_id=recent_sessions_by_exercise_id
+        recent_sessions_by_exercise_id=recent_sessions_by_exercise_id,
+        prs_by_exercise_id=prs_by_exercise_id
     )
 
 @bp.route("/exercises")

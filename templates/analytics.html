@@ -119,6 +119,16 @@
                 <canvas id="exercise-volume-chart"></canvas>
             </div>
 
+            <div class="pr-panel">
+                <h3 id="pr-title">Personal Records</h3>
+
+                <div id="pr-grid" class="pr-grid"></div>
+
+                <p id="pr-empty" class="helper-text">
+                    No personal records for this exercise yet.
+                </p>
+            </div>
+
             <div class="recent-sessions-panel">
                 <h3 id="recent-sessions-title">Recent Sessions</h3>
 
@@ -148,14 +158,17 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+
 const exerciseChartData = {{ exercise_chart_data | tojson }};
+const prsByExerciseId = {{ prs_by_exercise_id | tojson }};
+const recentSessionsByExerciseId = {{ recent_sessions_by_exercise_id | tojson }};
 
 const chartExerciseSelect = document.getElementById("chart-exercise-select");
 const chartExerciseMeta = document.getElementById("chart-exercise-meta");
 const exerciseVolumeCanvas = document.getElementById("exercise-volume-chart");
-
-const recentSessionsByExerciseId = {{ recent_sessions_by_exercise_id | tojson }};
-
+const prTitle = document.getElementById("pr-title");
+const prGrid = document.getElementById("pr-grid");
+const prEmpty = document.getElementById("pr-empty");
 const recentSessionsTitle = document.getElementById("recent-sessions-title");
 const recentSessionsList = document.getElementById("recent-sessions-list");
 const recentSessionsEmpty = document.getElementById("recent-sessions-empty");
@@ -326,7 +339,102 @@ function renderRecentSessions(exerciseId) {
 
 function updateSelectedExercise(exerciseId) {
     renderExerciseVolumeChart(exerciseId);
+    renderPersonalRecords(exerciseId);
     renderRecentSessions(exerciseId);
+}
+
+function formatWeight(value) {
+    return `${formatVolume(value)} lbs`;
+}
+
+function formatSet(weight, reps) {
+    return `${formatWeight(weight)} × ${reps}`;
+}
+
+function createPrCard(label, value, detail) {
+    const card = document.createElement("div");
+    card.className = "pr-card";
+
+    const labelEl = document.createElement("div");
+    labelEl.className = "pr-label";
+    labelEl.textContent = label;
+
+    const valueEl = document.createElement("div");
+    valueEl.className = "pr-value";
+    valueEl.textContent = value;
+
+    const detailEl = document.createElement("div");
+    detailEl.className = "pr-detail";
+    detailEl.textContent = detail;
+
+    card.appendChild(labelEl);
+    card.appendChild(valueEl);
+    card.appendChild(detailEl);
+
+    return card;
+}
+
+function renderPersonalRecords(exerciseId) {
+    if (!prGrid || !prEmpty) {
+        return;
+    }
+
+    const chartData = exerciseChartData[exerciseId] || {};
+    const exercise = chartData.exercise || {};
+    const prs = prsByExerciseId[exerciseId] || {};
+
+    if (prTitle) {
+        prTitle.textContent = exercise.name
+            ? `${exercise.name} Personal Records`
+            : "Personal Records";
+    }
+
+    prGrid.innerHTML = "";
+
+    const cards = [];
+
+    if (prs.heaviest_set) {
+        cards.push(createPrCard(
+            "Heaviest Set",
+            formatSet(prs.heaviest_set.weight, prs.heaviest_set.reps),
+            formatDateLabel(prs.heaviest_set.date)
+        ));
+    }
+
+    if (prs.best_estimated_1rm) {
+        cards.push(createPrCard(
+            "Best Estimated 1RM",
+            formatWeight(prs.best_estimated_1rm.estimated_1rm),
+            `${formatSet(prs.best_estimated_1rm.weight, prs.best_estimated_1rm.reps)} on ${formatDateLabel(prs.best_estimated_1rm.date)}`
+        ));
+    }
+
+    if (prs.highest_session_volume) {
+        cards.push(createPrCard(
+            "Highest Session Volume",
+            formatWeight(prs.highest_session_volume.volume),
+            formatDateLabel(prs.highest_session_volume.date)
+        ));
+    }
+
+    if (prs.most_reps) {
+        cards.push(createPrCard(
+            "Most Reps in One Set",
+            `${prs.most_reps.reps} reps`,
+            `${formatWeight(prs.most_reps.weight)} on ${formatDateLabel(prs.most_reps.date)}`
+        ));
+    }
+
+    if (cards.length === 0) {
+        prEmpty.style.display = "block";
+        return;
+    }
+
+    prEmpty.style.display = "none";
+
+    cards.forEach(card => {
+        prGrid.appendChild(card);
+    });
 }
 
 

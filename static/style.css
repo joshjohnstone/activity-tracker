@@ -566,3 +566,50 @@ td {
         white-space: normal;
     }
 }
+
+.pr-panel {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.pr-panel h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.pr-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.pr-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0.75rem;
+    background: #fafafa;
+}
+
+.pr-label {
+    color: #666;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.pr-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.pr-detail {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 600px) {
+    .pr-grid {
+        grid-template-columns: 1fr;
+    }
+}
