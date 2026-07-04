@@ -119,6 +119,16 @@
                 <canvas id="exercise-volume-chart"></canvas>
             </div>
 
+            <div class="recent-sessions-panel">
+                <h3 id="recent-sessions-title">Recent Sessions</h3>
+
+                <ul id="recent-sessions-list" class="recent-sessions-list"></ul>
+
+                <p id="recent-sessions-empty" class="helper-text">
+                    No recent sessions for this exercise yet.
+                </p>
+            </div>    
+
         {% else %}
 
             <p class="helper-text">
@@ -143,6 +153,12 @@ const exerciseChartData = {{ exercise_chart_data | tojson }};
 const chartExerciseSelect = document.getElementById("chart-exercise-select");
 const chartExerciseMeta = document.getElementById("chart-exercise-meta");
 const exerciseVolumeCanvas = document.getElementById("exercise-volume-chart");
+
+const recentSessionsByExerciseId = {{ recent_sessions_by_exercise_id | tojson }};
+
+const recentSessionsTitle = document.getElementById("recent-sessions-title");
+const recentSessionsList = document.getElementById("recent-sessions-list");
+const recentSessionsEmpty = document.getElementById("recent-sessions-empty");
 
 let exerciseVolumeChart = null;
 
@@ -260,13 +276,68 @@ function renderExerciseVolumeChart(exerciseId) {
     });
 }
 
-if (chartExerciseSelect) {
-    renderExerciseVolumeChart(chartExerciseSelect.value);
+function renderRecentSessions(exerciseId) {
+    if (!recentSessionsList || !recentSessionsEmpty) {
+        return;
+    }
 
-    chartExerciseSelect.addEventListener("change", function() {
-        renderExerciseVolumeChart(this.value);
+    const chartData = exerciseChartData[exerciseId] || {};
+    const exercise = chartData.exercise || {};
+    const sessions = recentSessionsByExerciseId[exerciseId] || [];
+
+    if (recentSessionsTitle) {
+        recentSessionsTitle.textContent = exercise.name
+            ? `Recent ${exercise.name} Sessions`
+            : "Recent Sessions";
+    }
+
+    recentSessionsList.innerHTML = "";
+
+    if (sessions.length === 0) {
+        recentSessionsEmpty.style.display = "block";
+        return;
+    }
+
+    recentSessionsEmpty.style.display = "none";
+
+    sessions.forEach(session => {
+        const item = document.createElement("li");
+        item.className = "recent-session-item";
+
+        const date = document.createElement("div");
+        date.className = "recent-session-date";
+        date.textContent = formatDateLabel(session.date);
+
+        const summary = document.createElement("div");
+        summary.className = "recent-session-summary";
+        summary.textContent = session.summary;
+
+        const volume = document.createElement("div");
+        volume.className = "recent-session-volume";
+        volume.textContent = `${formatVolume(session.volume)} lbs`;
+
+        item.appendChild(date);
+        item.appendChild(summary);
+        item.appendChild(volume);
+
+        recentSessionsList.appendChild(item);
     });
 }
+
+function updateSelectedExercise(exerciseId) {
+    renderExerciseVolumeChart(exerciseId);
+    renderRecentSessions(exerciseId);
+}
+
+
+if (chartExerciseSelect) {
+    updateSelectedExercise(chartExerciseSelect.value);
+
+    chartExerciseSelect.addEventListener("change", function() {
+        updateSelectedExercise(this.value);
+    });
+}
+
 </script>
 
 {% endblock %}

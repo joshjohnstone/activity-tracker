@@ -483,6 +483,7 @@ def analytics():
     exercise_time_series = {}
     exercise_time_series_by_id = {}
     exercise_metadata_by_id = {}
+    recent_sessions_by_exercise_id = {}
 
     today = datetime.today().date()
 
@@ -622,6 +623,31 @@ def analytics():
                     return None
 
         return None
+    
+    def format_weighted_set_summary(sets_data):
+        """
+        Turn weighted set data into a compact display string:
+        8×135 lbs, 6×145 lbs, 4×155 lbs
+        """
+        if not sets_data:
+            return "No set details"
+
+        parts = []
+
+        for s in sets_data:
+            try:
+                reps = int(s.get("reps") or 0)
+                weight = float(s.get("weight") or 0)
+            except (ValueError, TypeError, AttributeError):
+                continue
+
+            if reps <= 0 and weight <= 0:
+                continue
+
+            weight_text = f"{weight:g}"
+            parts.append(f"{reps}×{weight_text} lbs")
+
+        return ", ".join(parts) if parts else "No set details"
 
     for row in rows:
         details = parse_details(row.details)
@@ -712,6 +738,16 @@ def analytics():
                 exercise_time_series_by_id[exercise_id_key].setdefault(date_str, 0)
                 exercise_time_series_by_id[exercise_id_key][date_str] += daily_volume
 
+            if exercise_obj and activity_date:
+                exercise_id_key = str(exercise_obj.id)
+
+                recent_sessions_by_exercise_id.setdefault(exercise_id_key, [])
+                recent_sessions_by_exercise_id[exercise_id_key].append({
+                    "date": date_str,
+                    "summary": format_weighted_set_summary(sets_data),
+                    "volume": daily_volume,
+                })
+
             # ---- TIME SERIES: per exercise ----
             exercise_time_series.setdefault(exercise_name, {})
             exercise_time_series[exercise_name].setdefault(date_str, 0)
@@ -790,6 +826,11 @@ def analytics():
     if chart_exercises:
         default_chart_exercise_id = str(chart_exercises[0]["id"])
 
+    # -- For recent sessions -- #
+    for exercise_id, sessions in recent_sessions_by_exercise_id.items():
+        sessions.sort(key=lambda session: session["date"], reverse=True)
+        recent_sessions_by_exercise_id[exercise_id] = sessions[:5]
+
     # -- ALL THE STATS! -- #
     return render_template(
         "analytics.html",
@@ -817,7 +858,9 @@ def analytics():
 
         exercise_chart_data=exercise_chart_data,
         chart_exercises=chart_exercises,
-        default_chart_exercise_id=default_chart_exercise_id
+        default_chart_exercise_id=default_chart_exercise_id,
+
+        recent_sessions_by_exercise_id=recent_sessions_by_exercise_id
     )
 
 @bp.route("/exercises")
