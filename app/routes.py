@@ -488,6 +488,9 @@ def analytics():
     days_since_sunday = (today.weekday() + 1) % 7
     start_of_week = today - timedelta(days=days_since_sunday)
 
+    previous_week_start = start_of_week - timedelta(days=7)
+    previous_week_end = start_of_week - timedelta(days=1)
+
     rows = Activity.query.filter_by(user_id=current_user.id).all()
 
     # Avoid requiring an Activity.exercise relationship.
@@ -500,9 +503,20 @@ def analytics():
     category_counts = {category: 0 for category in ACTIVITY_CATEGORIES}
 
     weekly_running = {}
-    weekly_strength_volume = 0
+
     weekly_activity_count = 0
-    weekly_activity_counts_by_category = {category: 0 for category in ACTIVITY_CATEGORIES}
+    weekly_activity_counts_by_category = {
+        category: 0 for category in ACTIVITY_CATEGORIES
+    }
+
+    weekly_strength_volume = 0
+    previous_week_strength_volume = 0
+
+    weekly_strength_session_count = 0
+    previous_week_strength_session_count = 0
+
+    weekly_strength_volume_by_exercise = {}
+
     exercise_set = set()
 
     def parse_details(raw_details):
@@ -599,16 +613,16 @@ def analytics():
         else:
             date_str = str(row.date)
 
+        # ---- CATEGORY COUNTS ----
+        category_counts.setdefault(activity_category, 0)
+        category_counts[activity_category] += 1
+
         # ---- THIS WEEK: ACTIVITY COUNT ----
         if activity_date and start_of_week <= activity_date <= today:
             weekly_activity_count += 1
 
             weekly_activity_counts_by_category.setdefault(activity_category, 0)
-            weekly_activity_counts_by_category[activity_category] += 1       
-
-        # ---- CATEGORY COUNTS ----
-        category_counts.setdefault(activity_category, 0)
-        category_counts[activity_category] += 1
+            weekly_activity_counts_by_category[activity_category] += 1
 
         # ---- CARDIO / RUNNING ANALYTICS ----
         # Keep the old variable name weekly_running so analytics.html does not break.
@@ -624,8 +638,8 @@ def analytics():
 
         # ---- STRENGTH VOLUME: sets × reps × weight ----
         #
-        # This preserves your existing weighted volume analytics.
-        # Legacy Strength rows are inferred as weighted_reps above.
+        # Weighted strength volume applies only to weighted_reps activities.
+        # Bodyweight reps, timed holds, etc. should eventually get separate metrics.
         if tracking_type == "weighted_reps":
             exercise_set.add(exercise_name)
 
@@ -645,9 +659,18 @@ def analytics():
             exercise_time_series[exercise_name].setdefault(date_str, 0)
             exercise_time_series[exercise_name][date_str] += daily_volume
 
-            # ---- WEEKLY TOTAL ----
+            # ---- THIS WEEK STRENGTH TOTALS ----
             if activity_date and start_of_week <= activity_date <= today:
                 weekly_strength_volume += daily_volume
+                weekly_strength_session_count += 1
+
+                weekly_strength_volume_by_exercise.setdefault(exercise_name, 0)
+                weekly_strength_volume_by_exercise[exercise_name] += daily_volume
+
+            # ---- PREVIOUS WEEK STRENGTH TOTALS ----
+            elif activity_date and previous_week_start <= activity_date <= previous_week_end:
+                previous_week_strength_volume += daily_volume
+                previous_week_strength_session_count += 1
 
             # ---- PER-EXERCISE TOTALS ----
             exercise_volume.setdefault(exercise_name, 0)
@@ -658,15 +681,43 @@ def analytics():
 
     exercise_list = sorted(list(exercise_set))
 
+    strength_volume_delta = weekly_strength_volume - previous_week_strength_volume
+
+    if previous_week_strength_volume > 0:
+        strength_volume_delta_percent = (
+            strength_volume_delta / previous_week_strength_volume
+        ) * 100
+    else:
+        strength_volume_delta_percent = None
+
+    if weekly_strength_volume_by_exercise:
+        top_strength_exercise_this_week = max(
+            weekly_strength_volume_by_exercise.items(),
+            key=lambda item: item[1]
+        )
+    else:
+        top_strength_exercise_this_week = None
+
+    # -- ALL THE STATS! -- #
     return render_template(
         "analytics.html",
         category_counts=category_counts,
         weekly_running=weekly_running,
-        weekly_strength_volume=weekly_strength_volume,
+
         weekly_activity_count=weekly_activity_count,
         weekly_activity_counts_by_category=weekly_activity_counts_by_category,
+
+        weekly_strength_volume=weekly_strength_volume,
+        previous_week_strength_volume=previous_week_strength_volume,
+        weekly_strength_session_count=weekly_strength_session_count,
+        previous_week_strength_session_count=previous_week_strength_session_count,
+        strength_volume_delta=strength_volume_delta,
+        strength_volume_delta_percent=strength_volume_delta_percent,
+        top_strength_exercise_this_week=top_strength_exercise_this_week,
+
         start_of_week=start_of_week,
         today=today,
+
         exercise_volume=exercise_volume,
         exercise_frequency=exercise_frequency,
         exercise_time_series=exercise_time_series,

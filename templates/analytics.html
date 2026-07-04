@@ -37,6 +37,54 @@
 
     <hr>
 
+        <div class="analytics-card">
+        <h3>Strength Volume This Week</h3>
+
+        <div class="big-number">
+            {{ "{:,.0f}".format(weekly_strength_volume) }} lbs
+        </div>
+
+        <p class="helper-text">
+            {{ weekly_strength_session_count }}
+            weighted
+            {{ "session" if weekly_strength_session_count == 1 else "sessions" }}
+            this week
+        </p>
+
+        {% if previous_week_strength_volume > 0 %}
+            <p class="helper-text">
+                {% if strength_volume_delta >= 0 %}
+                    +{{ "{:,.0f}".format(strength_volume_delta) }} lbs
+                {% else %}
+                    {{ "{:,.0f}".format(strength_volume_delta) }} lbs
+                {% endif %}
+                vs last week
+
+                {% if strength_volume_delta_percent is not none %}
+                    (
+                    {% if strength_volume_delta_percent >= 0 %}+{% endif %}
+                    {{ "{:.0f}".format(strength_volume_delta_percent) }}%
+                    )
+                {% endif %}
+            </p>
+        {% else %}
+            <p class="helper-text">
+                No weighted volume recorded last week.
+            </p>
+        {% endif %}
+
+        {% if top_strength_exercise_this_week %}
+            <p class="helper-text">
+                Top contributor:
+                {{ top_strength_exercise_this_week[0] }}
+                —
+                {{ "{:,.0f}".format(top_strength_exercise_this_week[1]) }} lbs
+            </p>
+        {% endif %}
+    </div>
+
+    <hr>
+
     <h2>Strength Progress by Exercise</h2>
 
     <select id="exerciseSelect">
@@ -100,30 +148,5 @@
     buildChart(document.getElementById("exerciseSelect").value);
     </script>
 
-    <h2>Workouts by Category</h2>
-
-    <ul>
-        <li>Running: {{ category_counts["Running"] }}</li>
-        <li>Strength: {{ category_counts["Strength"] }}</li>
-        <li>Mobility: {{ category_counts["Mobility"] }}</li>
-    </ul>
-
-    <hr>
-
-    <h2>Strength Volume (This Week)</h2>
-
-    <p>
-        {{ weekly_strength_volume }} lbs (sets × reps × weight)
-    </p>
-
-    <hr>
-
-    <h2>Running (by date)</h2>
-
-    <ul>
-        {% for date, distance in weekly_running.items() %}
-            <li>{{ date }}: {{ distance }} miles</li>
-        {% endfor %}
-    </ul>
 
 {% endblock %}
