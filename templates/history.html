@@ -306,6 +306,29 @@ liftCategoryFilter.addEventListener("change", function() {
 });
 
 rebuildHistoryExerciseFilter();
+
+document.addEventListener("click", function(event) {
+    const openMenus = document.querySelectorAll(".entry-menu[open]");
+
+    openMenus.forEach(menu => {
+        if (!menu.contains(event.target)) {
+            menu.removeAttribute("open");
+        }
+    });
+});
+
+document.querySelectorAll(".entry-menu").forEach(menu => {
+    menu.addEventListener("toggle", function() {
+        if (menu.open) {
+            document.querySelectorAll(".entry-menu[open]").forEach(otherMenu => {
+                if (otherMenu !== menu) {
+                    otherMenu.removeAttribute("open");
+                }
+            });
+        }
+    });
+});
+
 </script>
 
 {% endblock %}
