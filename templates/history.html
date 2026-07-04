@@ -171,7 +171,7 @@
 
                     </div>
 
-                    <div class="entry-actions">
+                    <div class="entry-actions desktop-actions">
                         <form
                             action="{{ url_for('main.delete_activity', id=entry.id) }}"
                             method="POST"
@@ -181,7 +181,27 @@
                                 Delete
                             </button>
                         </form>
-                    </div>                  
+                    </div>
+
+                    <div class="entry-actions mobile-actions">
+                        <details class="entry-menu">
+                            <summary class="entry-menu-button" aria-label="Activity actions">
+                                ⋮
+                            </summary>
+
+                            <div class="entry-menu-panel">
+                                <form
+                                    action="{{ url_for('main.delete_activity', id=entry.id) }}"
+                                    method="POST"
+                                    onsubmit="return confirm('Delete this activity?');"
+                                >
+                                    <button type="submit" class="entry-menu-delete">
+                                        Delete activity
+                                    </button>
+                                </form>
+                            </div>
+                        </details>
+                    </div>             
 
                 </div>
             {% endfor %}
