@@ -968,7 +968,9 @@ def analytics():
         default_chart_exercise_id=default_chart_exercise_id,
 
         recent_sessions_by_exercise_id=recent_sessions_by_exercise_id,
-        prs_by_exercise_id=prs_by_exercise_id
+        prs_by_exercise_id=prs_by_exercise_id,
+
+        LIFT_CATEGORIES=LIFT_CATEGORIES
     )
 
 @bp.route("/exercises")

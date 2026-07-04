@@ -613,3 +613,17 @@ td {
         grid-template-columns: 1fr;
     }
 }
+
+.analytics-filter-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1rem;
+    align-items: end;
+}
+
+@media (max-width: 600px) {
+    .analytics-filter-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+}

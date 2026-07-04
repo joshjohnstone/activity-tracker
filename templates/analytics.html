@@ -94,24 +94,38 @@
 
         {% if chart_exercises %}
 
-            <label for="chart-exercise-select">Exercise:</label>
+            <div class="analytics-filter-row">
+                <div>
+                    <label for="chart-lift-category-filter">Lift Category:</label>
+                    <select id="chart-lift-category-filter">
+                        <option value="All">All</option>
 
-            <select id="chart-exercise-select">
-                {% for exercise in chart_exercises %}
-                    <option
-                        value="{{ exercise.id }}"
-                        data-activity-category="{{ exercise.activity_category }}"
-                        data-lift-category="{{ exercise.lift_category or '' }}"
-                        data-tracking-type="{{ exercise.tracking_type }}"
-                        {% if default_chart_exercise_id|string == exercise.id|string %}selected{% endif %}
-                    >
-                        {{ exercise.name }}
-                        {% if exercise.lift_category %}
-                            — {{ exercise.lift_category }}
-                        {% endif %}
-                    </option>
-                {% endfor %}
-            </select>
+                        {% for category in LIFT_CATEGORIES %}
+                            <option value="{{ category }}">
+                                {{ category }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="chart-exercise-select">Exercise:</label>
+                    <select id="chart-exercise-select">
+                        {% for exercise in chart_exercises %}
+                            <option
+                                value="{{ exercise.id }}"
+                                data-name="{{ exercise.name }}"
+                                data-activity-category="{{ exercise.activity_category }}"
+                                data-lift-category="{{ exercise.lift_category or '' }}"
+                                data-tracking-type="{{ exercise.tracking_type }}"
+                                {% if default_chart_exercise_id|string == exercise.id|string %}selected{% endif %}
+                            >
+                                {{ exercise.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
 
             <p id="chart-exercise-meta" class="helper-text"></p>
 
@@ -165,6 +179,7 @@ const recentSessionsByExerciseId = {{ recent_sessions_by_exercise_id | tojson }}
 
 const chartExerciseSelect = document.getElementById("chart-exercise-select");
 const chartExerciseMeta = document.getElementById("chart-exercise-meta");
+const chartLiftCategoryFilter = document.getElementById("chart-lift-category-filter");
 const exerciseVolumeCanvas = document.getElementById("exercise-volume-chart");
 const prTitle = document.getElementById("pr-title");
 const prGrid = document.getElementById("pr-grid");
@@ -172,6 +187,18 @@ const prEmpty = document.getElementById("pr-empty");
 const recentSessionsTitle = document.getElementById("recent-sessions-title");
 const recentSessionsList = document.getElementById("recent-sessions-list");
 const recentSessionsEmpty = document.getElementById("recent-sessions-empty");
+
+const allChartExerciseOptions = chartExerciseSelect
+    ? Array.from(chartExerciseSelect.options).map(option => ({
+        value: option.value,
+        text: option.textContent,
+        name: option.dataset.name || option.textContent,
+        activityCategory: option.dataset.activityCategory || "",
+        liftCategory: option.dataset.liftCategory || "",
+        trackingType: option.dataset.trackingType || "",
+        selected: option.selected
+    }))
+    : [];
 
 let exerciseVolumeChart = null;
 
@@ -437,13 +464,69 @@ function renderPersonalRecords(exerciseId) {
     });
 }
 
+function rebuildChartExerciseSelect() {
+    if (!chartExerciseSelect) {
+        return null;
+    }
+
+    const selectedLiftCategory = chartLiftCategoryFilter
+        ? chartLiftCategoryFilter.value
+        : "All";
+
+    const currentExerciseId = chartExerciseSelect.value;
+
+    const filtered = allChartExerciseOptions.filter(option => {
+        return (
+            selectedLiftCategory === "All" ||
+            option.liftCategory === selectedLiftCategory
+        );
+    });
+
+    chartExerciseSelect.innerHTML = "";
+
+    filtered.forEach(optionData => {
+        const option = document.createElement("option");
+
+        option.value = optionData.value;
+        option.textContent = optionData.name;
+
+        option.dataset.name = optionData.name;
+        option.dataset.activityCategory = optionData.activityCategory;
+        option.dataset.liftCategory = optionData.liftCategory;
+        option.dataset.trackingType = optionData.trackingType;
+
+        chartExerciseSelect.appendChild(option);
+    });
+
+    const stillAvailable = filtered.some(option => option.value === currentExerciseId);
+
+    if (stillAvailable) {
+        chartExerciseSelect.value = currentExerciseId;
+    } else if (filtered.length > 0) {
+        chartExerciseSelect.value = filtered[0].value;
+    }
+
+    return chartExerciseSelect.value;
+}
+
 
 if (chartExerciseSelect) {
-    updateSelectedExercise(chartExerciseSelect.value);
+    const initialExerciseId = rebuildChartExerciseSelect();
+    updateSelectedExercise(initialExerciseId);
 
     chartExerciseSelect.addEventListener("change", function() {
         updateSelectedExercise(this.value);
     });
+
+    if (chartLiftCategoryFilter) {
+        chartLiftCategoryFilter.addEventListener("change", function() {
+            const selectedExerciseId = rebuildChartExerciseSelect();
+
+            if (selectedExerciseId) {
+                updateSelectedExercise(selectedExerciseId);
+            }
+        });
+    }
 }
 
 </script>
