@@ -656,6 +656,17 @@ def analytics():
         else:
             date_str = str(row.date)
 
+        if activity_date and previous_week_start <= activity_date <= previous_week_end:
+            print(
+                "PREV WEEK ROW:",
+                "date=", activity_date,
+                "category=", row.category,
+                "exercise_id=", row.exercise_id,
+                "exercise_name=", exercise_name,
+                "tracking_type=", tracking_type,
+                "details_keys=", list(details.keys()),
+            )
+
         # ---- CATEGORY COUNTS ----
         category_counts.setdefault(activity_category, 0)
         category_counts[activity_category] += 1
