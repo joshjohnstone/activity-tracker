@@ -546,14 +546,55 @@ def analytics():
         """
         Fallback for legacy activities that do not yet have Exercise metadata
         or tracking_type stored in details.
+
+        Prefer detecting the data shape over relying on legacy category names.
         """
         if details.get("tracking_type"):
             return details.get("tracking_type")
 
-        if category == "Running":
+        sets_data = details.get("sets", [])
+
+        if isinstance(sets_data, list) and sets_data:
+            has_weight = any(
+                isinstance(s, dict) and "weight" in s
+                for s in sets_data
+            )
+
+            has_reps = any(
+                isinstance(s, dict) and "reps" in s
+                for s in sets_data
+            )
+
+            has_duration = any(
+                isinstance(s, dict) and (
+                    "duration_seconds" in s or
+                    "duration" in s
+                )
+                for s in sets_data
+            )
+
+            if has_weight and has_reps:
+                return "weighted_reps"
+
+            if has_duration:
+                return "timed_hold"
+
+            if has_reps:
+                return "bodyweight_reps"
+
+        if details.get("distance") is not None:
             return "distance_duration"
 
-        if category == "Strength":
+        if (
+            details.get("duration_seconds") is not None or
+            details.get("mobility_duration") is not None
+        ):
+            return "duration_only"
+
+        if category in ("Running", "Cardio"):
+            return "distance_duration"
+
+        if category in ("Strength", "Push", "Pull", "Legs", "Core", "Shoulders", "Arms"):
             return "weighted_reps"
 
         if category == "Mobility":
@@ -748,6 +789,17 @@ def analytics():
 
     if chart_exercises:
         default_chart_exercise_id = str(chart_exercises[0]["id"])
+
+    print("---- ANALYTICS DEBUG ----")
+    print("today:", today)
+    print("start_of_week:", start_of_week)
+    print("previous_week_start:", previous_week_start)
+    print("previous_week_end:", previous_week_end)
+    print("weekly_strength_volume:", weekly_strength_volume)
+    print("previous_week_strength_volume:", previous_week_strength_volume)
+    print("weekly_strength_session_count:", weekly_strength_session_count)
+    print("previous_week_strength_session_count:", previous_week_strength_session_count)
+    print("-------------------------")
 
     # -- ALL THE STATS! -- #
     return render_template(
