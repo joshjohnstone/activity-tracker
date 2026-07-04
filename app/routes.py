@@ -676,18 +676,22 @@ def analytics():
             exercise_time_series[exercise_name].setdefault(date_str, 0)
             exercise_time_series[exercise_name][date_str] += daily_volume
 
-            # ---- THIS WEEK STRENGTH TOTALS ----
-            if activity_date and start_of_week <= activity_date <= today:
-                weekly_strength_volume += daily_volume
-                weekly_strength_session_count += 1
+            # ---- THIS WEEK / PREVIOUS WEEK STRENGTH TOTALS ----
+            if activity_date:
+                if start_of_week <= activity_date <= today:
+                    weekly_strength_volume += daily_volume
 
-                weekly_strength_volume_by_exercise.setdefault(exercise_name, 0)
-                weekly_strength_volume_by_exercise[exercise_name] += daily_volume
+                    if daily_volume > 0:
+                        weekly_strength_session_count += 1
 
-            # ---- PREVIOUS WEEK STRENGTH TOTALS ----
-            elif activity_date and previous_week_start <= activity_date <= previous_week_end:
-                previous_week_strength_volume += daily_volume
-                previous_week_strength_session_count += 1
+                    weekly_strength_volume_by_exercise.setdefault(exercise_name, 0)
+                    weekly_strength_volume_by_exercise[exercise_name] += daily_volume
+
+                if previous_week_start <= activity_date <= previous_week_end:
+                    previous_week_strength_volume += daily_volume
+
+                    if daily_volume > 0:
+                        previous_week_strength_session_count += 1
 
             # ---- PER-EXERCISE TOTALS ----
             exercise_volume.setdefault(exercise_name, 0)
