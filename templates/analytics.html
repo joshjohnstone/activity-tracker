@@ -2,16 +2,18 @@
 
 {% block content %}
 
-    <h1>Training Analytics</h1>
+<h1>Training Analytics</h1>
 
-    <div class="nav">
-        <a href="/">Log Activity</a>
-        <a href="/history">History</a>
-        <a href="/analytics">Analytics</a>
-        <a href="/exercises">Exercises</a>
-    </div>
+<div class="nav">
+    <a href="/">Log Activity</a>
+    <a href="/history">History</a>
+    <a href="/analytics">Analytics</a>
+    <a href="/exercises">Exercises</a>
+</div>
 
-    <hr>
+<hr>
+
+<section class="analytics-section">
 
     <div class="analytics-card">
         <h2>Activities This Week</h2>
@@ -35,10 +37,8 @@
         </div>
     </div>
 
-    <hr>
-
-        <div class="analytics-card">
-        <h3>Strength Volume This Week</h3>
+    <div class="analytics-card">
+        <h2>Strength Volume This Week</h2>
 
         <div class="big-number">
             {{ "{:,.0f}".format(weekly_strength_volume) }} lbs
@@ -83,70 +83,190 @@
         {% endif %}
     </div>
 
-    <hr>
+</section>
 
-    <h2>Strength Progress by Exercise</h2>
+<hr>
 
-    <select id="exerciseSelect">
-        {% for ex in exercise_list %}
-            <option value="{{ ex }}">{{ ex }}</option>
-        {% endfor %}
-    </select>
+<section class="analytics-section">
 
-    <canvas id="exerciseChart"></canvas>
+    <div class="analytics-card">
+        <h2>Exercise Volume Over Time</h2>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        {% if chart_exercises %}
 
-    <script>
-    const exerciseData = {{ exercise_time_series | tojson }};
-    </script>
+            <label for="chart-exercise-select">Exercise:</label>
 
-    <script>
-    let chart;
+            <select id="chart-exercise-select">
+                {% for exercise in chart_exercises %}
+                    <option
+                        value="{{ exercise.id }}"
+                        data-activity-category="{{ exercise.activity_category }}"
+                        data-lift-category="{{ exercise.lift_category or '' }}"
+                        data-tracking-type="{{ exercise.tracking_type }}"
+                        {% if default_chart_exercise_id|string == exercise.id|string %}selected{% endif %}
+                    >
+                        {{ exercise.name }}
+                        {% if exercise.lift_category %}
+                            — {{ exercise.lift_category }}
+                        {% endif %}
+                    </option>
+                {% endfor %}
+            </select>
 
-    function buildChart(exercise) {
-        const raw = exerciseData[exercise] || {};
+            <p id="chart-exercise-meta" class="helper-text"></p>
 
-        const labels = Object.keys(raw).sort();
-        const values = labels.map(d => raw[d]);
+            <div class="chart-container">
+                <canvas id="exercise-volume-chart"></canvas>
+            </div>
 
-        const ctx = document.getElementById("exerciseChart").getContext("2d");
+        {% else %}
 
-        if (chart) {
-            chart.destroy();
-        }
+            <p class="helper-text">
+                No weighted exercise volume data yet.
+            </p>
 
-        chart = new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: exercise + " Volume",
-                    data: values,
-                    borderWidth: 2,
-                    fill: false
-                }]
-            }
-        });
-    }
+        {% endif %}
 
-    const selector = document.getElementById("exerciseSelect");
+    </div>
 
-    if (selector && selector.value) {
-        buildChart(selector.value);
+</section>
 
-        selector.addEventListener("change", function() {
-            buildChart(this.value);
-        });
-    }
+{% endblock %}
 
-    document.getElementById("exerciseSelect").addEventListener("change", function() {
-        buildChart(this.value);
+{% block scripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const exerciseChartData = {{ exercise_chart_data | tojson }};
+
+const chartExerciseSelect = document.getElementById("chart-exercise-select");
+const chartExerciseMeta = document.getElementById("chart-exercise-meta");
+const exerciseVolumeCanvas = document.getElementById("exercise-volume-chart");
+
+let exerciseVolumeChart = null;
+
+function formatDateLabel(dateString) {
+    const date = new Date(dateString + "T00:00:00");
+
+    return date.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric"
     });
+}
 
-    // initial render
-    buildChart(document.getElementById("exerciseSelect").value);
-    </script>
+function formatVolume(value) {
+    return Math.round(value).toLocaleString();
+}
 
+function formatTrackingType(trackingType) {
+    if (!trackingType) {
+        return "";
+    }
+
+    return trackingType
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function updateExerciseMeta(exercise) {
+    if (!chartExerciseMeta || !exercise) {
+        return;
+    }
+
+    const metaParts = [];
+
+    if (exercise.activity_category) {
+        metaParts.push(exercise.activity_category);
+    }
+
+    if (exercise.lift_category) {
+        metaParts.push(exercise.lift_category);
+    }
+
+    if (exercise.tracking_type) {
+        metaParts.push(formatTrackingType(exercise.tracking_type));
+    }
+
+    chartExerciseMeta.textContent = metaParts.join(" • ");
+}
+
+function renderExerciseVolumeChart(exerciseId) {
+    if (!exerciseVolumeCanvas || !exerciseId || !exerciseChartData[exerciseId]) {
+        return;
+    }
+
+    const chartData = exerciseChartData[exerciseId];
+    const points = chartData.points || [];
+    const exercise = chartData.exercise || {};
+
+    updateExerciseMeta(exercise);
+
+    const labels = points.map(point => formatDateLabel(point.date));
+    const values = points.map(point => point.volume);
+
+    if (exerciseVolumeChart) {
+        exerciseVolumeChart.destroy();
+    }
+
+    exerciseVolumeChart = new Chart(exerciseVolumeCanvas, {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: `${exercise.name || "Exercise"} volume`,
+                data: values,
+                borderWidth: 2,
+                tension: 0.2,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatVolume(value);
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: "Volume, lbs"
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: "Date"
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${formatVolume(context.parsed.y)} lbs`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+if (chartExerciseSelect) {
+    renderExerciseVolumeChart(chartExerciseSelect.value);
+
+    chartExerciseSelect.addEventListener("change", function() {
+        renderExerciseVolumeChart(this.value);
+    });
+}
+</script>
 
 {% endblock %}

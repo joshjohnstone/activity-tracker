@@ -392,6 +392,43 @@ td {
     }
 }
 
+.analytics-section {
+    display: grid;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.analytics-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #fff;
+}
+
+.big-number {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0.25rem 0;
+}
+
+.category-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 280px;
+    margin-top: 1rem;
+}
+
+@media (max-width: 600px) {
+    .chart-container {
+        height: 240px;
+    }
+}
+
 /* Mobile tweaks */
 
 @media (max-width: 600px) {

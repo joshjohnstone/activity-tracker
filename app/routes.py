@@ -481,6 +481,8 @@ def analytics():
     exercise_volume = {}
     exercise_frequency = {}
     exercise_time_series = {}
+    exercise_time_series_by_id = {}
+    exercise_metadata_by_id = {}
 
     today = datetime.today().date()
 
@@ -654,6 +656,21 @@ def analytics():
                 except (ValueError, TypeError, AttributeError):
                     pass
 
+            if exercise_obj:
+                exercise_id_key = str(exercise_obj.id)
+
+                exercise_metadata_by_id[exercise_id_key] = {
+                    "id": exercise_obj.id,
+                    "name": exercise_obj.name,
+                    "activity_category": activity_category,
+                    "lift_category": exercise_obj.lift_category,
+                    "tracking_type": tracking_type,
+                }
+
+                exercise_time_series_by_id.setdefault(exercise_id_key, {})
+                exercise_time_series_by_id[exercise_id_key].setdefault(date_str, 0)
+                exercise_time_series_by_id[exercise_id_key][date_str] += daily_volume
+
             # ---- TIME SERIES: per exercise ----
             exercise_time_series.setdefault(exercise_name, {})
             exercise_time_series[exercise_name].setdefault(date_str, 0)
@@ -698,6 +715,36 @@ def analytics():
     else:
         top_strength_exercise_this_week = None
 
+    exercise_chart_data = {}
+
+    for exercise_id, date_map in exercise_time_series_by_id.items():
+        sorted_points = [
+            {
+                "date": date,
+                "volume": volume,
+            }
+            for date, volume in sorted(date_map.items())
+        ]
+
+        exercise_chart_data[exercise_id] = {
+            "exercise": exercise_metadata_by_id[exercise_id],
+            "points": sorted_points,
+        }
+
+    chart_exercises = sorted(
+        exercise_metadata_by_id.values(),
+        key=lambda exercise: (
+            exercise["activity_category"] or "",
+            exercise["lift_category"] or "",
+            exercise["name"] or "",
+        )
+    )
+
+    default_chart_exercise_id = None
+
+    if chart_exercises:
+        default_chart_exercise_id = str(chart_exercises[0]["id"])
+
     # -- ALL THE STATS! -- #
     return render_template(
         "analytics.html",
@@ -721,7 +768,11 @@ def analytics():
         exercise_volume=exercise_volume,
         exercise_frequency=exercise_frequency,
         exercise_time_series=exercise_time_series,
-        exercise_list=exercise_list
+        exercise_list=exercise_list,
+
+        exercise_chart_data=exercise_chart_data,
+        chart_exercises=chart_exercises,
+        default_chart_exercise_id=default_chart_exercise_id
     )
 
 @bp.route("/exercises")
