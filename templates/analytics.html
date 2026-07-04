@@ -13,6 +13,30 @@
 
     <hr>
 
+    <div class="analytics-card">
+        <h2>Activities This Week</h2>
+
+        <div class="big-number">
+            {{ weekly_activity_count }}
+        </div>
+
+        <p class="helper-text">
+            {{ start_of_week.strftime("%b %d") }} – {{ today.strftime("%b %d") }}
+        </p>
+
+        <div class="category-breakdown">
+            {% for category, count in weekly_activity_counts_by_category.items() %}
+                {% if count > 0 %}
+                    <span class="exercise-badge">
+                        {{ category }}: {{ count }}
+                    </span>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <hr>
+
     <h2>Strength Progress by Exercise</h2>
 
     <select id="exerciseSelect">

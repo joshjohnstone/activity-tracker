@@ -501,6 +501,8 @@ def analytics():
 
     weekly_running = {}
     weekly_strength_volume = 0
+    weekly_activity_count = 0
+    weekly_activity_counts_by_category = {category: 0 for category in ACTIVITY_CATEGORIES}
     exercise_set = set()
 
     def parse_details(raw_details):
@@ -597,6 +599,13 @@ def analytics():
         else:
             date_str = str(row.date)
 
+        # ---- THIS WEEK: ACTIVITY COUNT ----
+        if activity_date and start_of_week <= activity_date <= today:
+            weekly_activity_count += 1
+
+            weekly_activity_counts_by_category.setdefault(activity_category, 0)
+            weekly_activity_counts_by_category[activity_category] += 1       
+
         # ---- CATEGORY COUNTS ----
         category_counts.setdefault(activity_category, 0)
         category_counts[activity_category] += 1
@@ -654,6 +663,10 @@ def analytics():
         category_counts=category_counts,
         weekly_running=weekly_running,
         weekly_strength_volume=weekly_strength_volume,
+        weekly_activity_count=weekly_activity_count,
+        weekly_activity_counts_by_category=weekly_activity_counts_by_category,
+        start_of_week=start_of_week,
+        today=today,
         exercise_volume=exercise_volume,
         exercise_frequency=exercise_frequency,
         exercise_time_series=exercise_time_series,
