@@ -656,17 +656,6 @@ def analytics():
         else:
             date_str = str(row.date)
 
-        if activity_date and previous_week_start <= activity_date <= previous_week_end:
-            print(
-                "PREV WEEK ROW:",
-                "date=", activity_date,
-                "category=", row.category,
-                "exercise_id=", row.exercise_id,
-                "exercise_name=", exercise_name,
-                "tracking_type=", tracking_type,
-                "details_keys=", list(details.keys()),
-            )
-
         # ---- CATEGORY COUNTS ----
         category_counts.setdefault(activity_category, 0)
         category_counts[activity_category] += 1
@@ -800,17 +789,6 @@ def analytics():
 
     if chart_exercises:
         default_chart_exercise_id = str(chart_exercises[0]["id"])
-
-    print("---- ANALYTICS DEBUG ----")
-    print("today:", today)
-    print("start_of_week:", start_of_week)
-    print("previous_week_start:", previous_week_start)
-    print("previous_week_end:", previous_week_end)
-    print("weekly_strength_volume:", weekly_strength_volume)
-    print("previous_week_strength_volume:", previous_week_strength_volume)
-    print("weekly_strength_session_count:", weekly_strength_session_count)
-    print("previous_week_strength_session_count:", previous_week_strength_session_count)
-    print("-------------------------")
 
     # -- ALL THE STATS! -- #
     return render_template(

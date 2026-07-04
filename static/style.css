@@ -100,33 +100,100 @@ td {
     padding: 8px;
 }
 
-.exercise-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 0;
-    gap: 10px;
+/* Exercises page */
+
+.exercise-groups {
+    margin-top: 1rem;
 }
 
-.exercise-name {
-    font-weight: 500;
+.exercise-group {
+    margin-top: 1.5rem;
+}
+
+.exercise-group-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.exercise-count {
+    font-size: 0.85rem;
+    font-weight: normal;
+    opacity: 0.7;
+}
+
+.exercise-subgroup-heading {
+    margin-top: 1rem;
+    margin-bottom: 0.4rem;
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+.exercise-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.exercise-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #ddd;
 }
 
 .exercise-info {
     display: flex;
-    align-items: baseline;
-    gap: 6px;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
 }
 
-.exercise-category {
-    color: #777;
-    font-size: 0.9em;
+.exercise-name {
+    font-weight: 600;
+}
+
+.exercise-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.exercise-badge {
+    display: inline-flex;
+    align-items: center;
+    width: auto;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: #eee;
+    color: #444;
+    white-space: nowrap;
 }
 
 .delete-btn {
     color: #b00020;
     text-decoration: none;
     font-size: 14px;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .exercise-item {
+        align-items: flex-start;
+    }
+
+    .exercise-meta {
+        margin-top: 0.15rem;
+    }
+
+    .delete-btn {
+        padding-top: 0.15rem;
+    }
 }
 
 .history-day {
