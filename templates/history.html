@@ -163,12 +163,27 @@
                                 {% endif %}
                             </div>
 
+                        {% elif entry.tracking_type == "notes_only" %}
+
+                            <div class="notes-entry">
+                                {% if entry.details.notes %}
+                                    {{ entry.details.notes }}
+                                {% else %}
+                                    <span class="helper-text">No notes</span>
+                                {% endif %}
+                            </div>
+
                         {% else %}
 
-                            <pre>{{ entry.details }}</pre>
+                            <div class="notes-entry">
+                                {% if entry.details.notes %}
+                                    {{ entry.details.notes }}
+                                {% else %}
+                                    <span class="helper-text">No details available</span>
+                                {% endif %}
+                            </div>
 
                         {% endif %}
-
                     </div>
 
                     <div class="entry-actions desktop-actions">
