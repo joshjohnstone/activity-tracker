@@ -283,25 +283,40 @@ function renderExerciseVolumeChart(exerciseId) {
             scales: {
                 y: {
                     beginAtZero: true,
+                    grid: {
+                        color: chartGridColor
+                    },
                     ticks: {
+                        color: chartTextColor,
                         callback: function(value) {
                             return formatVolume(value);
                         }
                     },
                     title: {
                         display: true,
-                        text: "Volume, lbs"
+                        text: "Volume, lbs",
+                        color: chartTextColor
                     }
                 },
                 x: {
+                    grid: {
+                        color: chartGridColor
+                    },
+                    ticks: {
+                        color: chartTextColor
+                    },
                     title: {
                         display: true,
-                        text: "Date"
+                        text: "Date",
+                        color: chartTextColor
                     }
                 }
             },
             plugins: {
                 legend: {
+                    labels: {
+                        color: chartTextColor
+                    },
                     display: false
                 },
                 tooltip: {
@@ -508,6 +523,15 @@ function rebuildChartExerciseSelect() {
 
     return chartExerciseSelect.value;
 }
+
+function getCssVariable(name) {
+    return getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim();
+}
+
+const chartTextColor = getCssVariable("--text-muted");
+const chartGridColor = getCssVariable("--border-soft");
 
 
 if (chartExerciseSelect) {
