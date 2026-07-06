@@ -83,6 +83,34 @@
 
     <hr>
 
+    {% if pagination.total_pages > 1 %}
+        <div class="pagination">
+            {% if pagination.has_prev %}
+                <a class="pagination-link" href="{{ url_for('main.history', **pagination.prev_args) }}">
+                    ← Newer
+                </a>
+            {% else %}
+                <span class="pagination-link pagination-disabled">
+                    ← Newer
+                </span>
+            {% endif %}
+
+            <span class="pagination-status">
+                Page {{ pagination.page }} of {{ pagination.total_pages }}
+            </span>
+
+            {% if pagination.has_next %}
+                <a class="pagination-link" href="{{ url_for('main.history', **pagination.next_args) }}">
+                    Older →
+                </a>
+            {% else %}
+                <span class="pagination-link pagination-disabled">
+                    Older →
+                </span>
+            {% endif %}
+        </div>
+    {% endif %}    
+
     {% for date, day in grouped.items() %}
 
     <div class="history-day">
@@ -226,6 +254,34 @@
     </div>
 
     {% endfor %}
+
+    {% if pagination.total_pages > 1 %}
+        <div class="pagination">
+            {% if pagination.has_prev %}
+                <a class="pagination-link" href="{{ url_for('main.history', **pagination.prev_args) }}">
+                    ← Newer
+                </a>
+            {% else %}
+                <span class="pagination-link pagination-disabled">
+                    ← Newer
+                </span>
+            {% endif %}
+
+            <span class="pagination-status">
+                Page {{ pagination.page }} of {{ pagination.total_pages }}
+            </span>
+
+            {% if pagination.has_next %}
+                <a class="pagination-link" href="{{ url_for('main.history', **pagination.next_args) }}">
+                    Older →
+                </a>
+            {% else %}
+                <span class="pagination-link pagination-disabled">
+                    Older →
+                </span>
+            {% endif %}
+        </div>
+    {% endif %}
 
 {% endblock %}
 

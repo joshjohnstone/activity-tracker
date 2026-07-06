@@ -655,6 +655,53 @@ td {
     align-items: end;
 }
 
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.pagination-link {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.45rem 0.75rem;
+    text-decoration: none;
+    background: var(--surface-muted);
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.pagination-link:hover {
+    background: var(--surface-raised);
+}
+
+.pagination-disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.pagination-status {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .pagination {
+        gap: 0.5rem;
+    }
+
+    .pagination-link {
+        padding: 0.4rem 0.65rem;
+    }
+
+    .pagination-status {
+        font-size: 0.85rem;
+    }
+}
+
 /* Mobile tweaks */
 
 @media (max-width: 600px) {

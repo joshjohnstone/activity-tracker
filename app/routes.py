@@ -1,4 +1,5 @@
 import json
+import math
 from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
@@ -457,13 +458,53 @@ def history():
             except (ValueError, TypeError):
                 pass
 
-    grouped_sorted = dict(
-        sorted(grouped.items(), reverse=True)
+    grouped_activity_items = sorted(
+        grouped.items(),
+        reverse=True
     )
+
+    page = request.args.get("page", 1, type=int)
+    days_per_page = 14
+
+    total_days = len(grouped_activity_items)
+    total_pages = max(1, math.ceil(total_days / days_per_page))
+
+    page = max(1, min(page, total_pages))
+
+    start_index = (page - 1) * days_per_page
+    end_index = start_index + days_per_page
+
+    paged_grouped_activities = dict(
+        grouped_activity_items[start_index:end_index]
+    )
+
+    query_args = request.args.to_dict()
+
+    prev_args = {
+        **query_args,
+        "page": page - 1,
+    }
+
+    next_args = {
+        **query_args,
+        "page": page + 1,
+    }
+
+    pagination = {
+        "page": page,
+        "total_pages": total_pages,
+        "has_prev": page > 1,
+        "has_next": page < total_pages,
+        "prev_args": prev_args,
+        "next_args": next_args,
+        "total_days": total_days,
+        "days_per_page": days_per_page,
+    }
 
     return render_template(
         "history.html",
-        grouped=grouped_sorted,
+        grouped=paged_grouped_activities,
+        pagination=pagination,
         exercises=exercises,
         ACTIVITY_CATEGORIES=ACTIVITY_CATEGORIES,
         LIFT_CATEGORIES=LIFT_CATEGORIES,
