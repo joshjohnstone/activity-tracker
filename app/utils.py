@@ -7,6 +7,24 @@ def format_pace(pace):
 
     return f"{minutes}:{seconds:02d} / mi"
 
+def format_duration(seconds):
+    try:
+        total_seconds = int(seconds or 0)
+    except (ValueError, TypeError):
+        return ""
+
+    if total_seconds <= 0:
+        return "0:00"
+
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    remaining_seconds = total_seconds % 60
+
+    if hours > 0:
+        return f"{hours}:{minutes:02d}:{remaining_seconds:02d}"
+
+    return f"{minutes}:{remaining_seconds:02d}"
+
 def parse_duration_to_seconds(value):
 
     if not value:

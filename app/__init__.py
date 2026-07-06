@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_migrate import Migrate
 from flask_login import LoginManager
-from app.utils import format_pace
+from app.utils import format_pace, format_duration
 import os
 from app.models import db, User
 
@@ -58,7 +58,7 @@ def create_app():
     from app.routes import bp
     app.register_blueprint(bp)
 
-    app.jinja_env.globals.update(format_pace=format_pace)
+    app.jinja_env.globals.update(format_pace=format_pace, format_duration=format_duration)
 
     @app.cli.command("backfill-activity-exercise-ids")
     def backfill_activity_exercise_ids():

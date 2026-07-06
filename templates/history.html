@@ -133,7 +133,7 @@
                             <div class="set-list">
                                 {% for s in entry.details.sets %}
                                     <div class="set-row">
-                                        {{ s.duration_seconds }} seconds
+                                        {{ format_duration(s.duration_seconds) }}
                                     </div>
                                 {% endfor %}
                             </div>
@@ -145,7 +145,7 @@
                                 {{ entry.details.distance_unit or "miles" }}
 
                                 {% if entry.details.duration_seconds %}
-                                    • {{ entry.details.duration_seconds }} seconds
+                                    • {{ format_duration(entry.details.duration_seconds) }} 
                                 {% endif %}
 
                                 {% if entry.details.pace %}
@@ -156,7 +156,7 @@
                         {% elif entry.tracking_type == "duration_only" %}
 
                             <div class="duration-entry">
-                                {{ entry.details.duration_seconds }} seconds
+                                {{ format_duration(entry.details.duration_seconds) }} 
 
                                 {% if entry.details.notes %}
                                     • {{ entry.details.notes }}
