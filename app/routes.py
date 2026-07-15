@@ -534,7 +534,7 @@ def analytics():
     start_of_week = today - timedelta(days=days_since_sunday)
 
     previous_week_start = start_of_week - timedelta(days=7)
-    previous_week_end = start_of_week - timedelta(days=1)
+    previous_week_end = previous_week_start + timedelta(days=days_since_sunday)
 
     rows = Activity.query.filter_by(user_id=current_user.id).all()
 

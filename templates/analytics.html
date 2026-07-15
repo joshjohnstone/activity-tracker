@@ -58,7 +58,7 @@
                 {% else %}
                     {{ "{:,.0f}".format(strength_volume_delta) }} lbs
                 {% endif %}
-                vs last week
+                vs last week (same point)
 
                 {% if strength_volume_delta_percent is not none %}
                     (
@@ -69,7 +69,7 @@
             </p>
         {% else %}
             <p class="helper-text">
-                No weighted volume recorded last week.
+                No weighted volume recorded last week through this point.
             </p>
         {% endif %}
 
