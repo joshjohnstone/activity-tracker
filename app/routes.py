@@ -12,7 +12,7 @@ from app.constants import (
     DISPLAY_FIELDS_BY_CATEGORY,
     DEFAULT_EXERCISES
 )
-from app.utils import parse_duration_to_seconds
+from app.utils import parse_duration_to_seconds, abbreviate_distance_unit
 
 bp = Blueprint("main", __name__)
 
@@ -74,7 +74,7 @@ def summarize_activity_details(details):
         if pace:
             pace_minutes = int(pace)
             pace_seconds = int(round((pace - pace_minutes) * 60))
-            parts.append(f"Pace: {pace_minutes}:{pace_seconds:02d} / mile")
+            parts.append(f"Pace: {pace_minutes}:{pace_seconds:02d} / {abbreviate_distance_unit(unit)}")
 
         return parts
 

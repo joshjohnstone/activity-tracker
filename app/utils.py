@@ -1,11 +1,20 @@
-def format_pace(pace):
+DISTANCE_UNIT_ABBREVIATIONS = {
+    "miles": "mi",
+    "meters": "m",
+    "kilometers": "km",
+}
+
+def abbreviate_distance_unit(unit):
+    return DISTANCE_UNIT_ABBREVIATIONS.get(unit, "mi")
+
+def format_pace(pace, unit=None):
     if not pace:
         return None
 
     minutes = int(pace)
     seconds = int(round((pace - minutes) * 60))
 
-    return f"{minutes}:{seconds:02d} / mi"
+    return f"{minutes}:{seconds:02d} / {abbreviate_distance_unit(unit)}"
 
 def format_duration(seconds):
     try:

@@ -177,7 +177,7 @@
                                 {% endif %}
 
                                 {% if entry.details.pace %}
-                                    • {{ format_pace(entry.details.pace) }}
+                                    • {{ format_pace(entry.details.pace, entry.details.distance_unit) }}
                                 {% endif %}
                             </div>
 
