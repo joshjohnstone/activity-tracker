@@ -78,6 +78,15 @@ DEFAULT_EXERCISES = [
     ("Stretching", "Mobility", None, "duration_only")
 ]
 
+TRACKING_TYPE_LABELS = {
+    "weighted_reps": "Weighted reps",
+    "bodyweight_reps": "Bodyweight reps",
+    "timed_hold": "Timed hold",
+    "duration_only": "Duration only",
+    "distance_duration": "Distance + duration",
+    "notes_only": "Notes only",
+}
+
 LIFT_CATEGORIES = [
     "Push",
     "Pull",

@@ -63,6 +63,7 @@
                 data-activity-category="{{ exercise.activity_category }}"
                 data-lift-category="{{ exercise.lift_category or '' }}"
                 data-tracking-type="{{ exercise.tracking_type }}"
+                data-is-dumbbell-pair="{{ exercise.is_dumbbell_pair|lower }}"
             >
                 {{ exercise.name }}
             </option>
@@ -89,6 +90,10 @@
     <div id="sets-fields" class="tracking-section">
 
         <h3 id="sets-heading">Sets</h3>
+
+        <p id="dumbbell-pair-notice" class="helper-text" style="display: none;">
+            This exercise uses a pair of dumbbells — enter the weight of one dumbbell only.
+        </p>
 
         <div id="sets-container">
             <!-- JavaScript will insert set rows here -->
@@ -224,6 +229,8 @@ const notesOnlyFields = document.getElementById("notes-only-fields");
 const addSetBtn = document.getElementById("add-set-btn");
 const removeSetBtn = document.getElementById("remove-set-btn");
 
+const dumbbellPairNotice = document.getElementById("dumbbell-pair-notice");
+
 let currentTrackingType = null;
 
 function disableInputs(section) {
@@ -250,6 +257,13 @@ function hideAllTrackingSections() {
 function getSelectedTrackingType() {
     const selected = exerciseSelect.options[exerciseSelect.selectedIndex];
     return selected.dataset.trackingType;
+}
+
+function updateDumbbellPairNotice() {
+    const selected = exerciseSelect.options[exerciseSelect.selectedIndex];
+    const isDumbbellPair = selected && selected.dataset.isDumbbellPair === "true";
+
+    dumbbellPairNotice.style.display = isDumbbellPair ? "block" : "none";
 }
 
 function setRowHtml(setNumber, trackingType) {
@@ -361,6 +375,8 @@ function updateFormForTrackingType() {
     }
 
     currentTrackingType = trackingType;
+
+    updateDumbbellPairNotice();
 }
 
 exerciseSelect.addEventListener("change", function() {
@@ -441,7 +457,8 @@ const allExerciseOptions =
         name: option.dataset.name || option.text,
         activityCategory: option.dataset.activityCategory,
         liftCategory: option.dataset.liftCategory,
-        trackingType: option.dataset.trackingType
+        trackingType: option.dataset.trackingType,
+        isDumbbellPair: option.dataset.isDumbbellPair
     }));
 
 const liftCategoryFilterWrapper =
@@ -488,6 +505,7 @@ function rebuildExerciseDropdown() {
         option.dataset.activityCategory = optionData.activityCategory;
         option.dataset.liftCategory = optionData.liftCategory;
         option.dataset.trackingType = optionData.trackingType;
+        option.dataset.isDumbbellPair = optionData.isDumbbellPair;
 
         exerciseSelect.appendChild(option);
     });

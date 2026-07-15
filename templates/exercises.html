@@ -46,6 +46,13 @@
         {% endfor %}
     </select>
 
+    <div id="dumbbell-pair-wrapper">
+        <label for="is_dumbbell_pair">
+            <input type="checkbox" name="is_dumbbell_pair" id="is_dumbbell_pair">
+            Uses a pair of dumbbells (doubles logged weight for volume/PRs)
+        </label>
+    </div>
+
     <button type="submit">Add Exercise</button>
 
 </form>
@@ -91,8 +98,19 @@
                                         <span class="exercise-badge">
                                             {{ exercise.tracking_type_label }}
                                         </span>
+
+                                        {% if exercise.is_dumbbell_pair %}
+                                            <span class="exercise-badge">
+                                                Pair
+                                            </span>
+                                        {% endif %}
                                     </div>
                                 </div>
+
+                                <a class="edit-btn"
+                                   href="/edit_exercise/{{ exercise.id }}">
+                                    Edit
+                                </a>
 
                                 <a class="delete-btn"
                                    href="/delete_exercise/{{ exercise.id }}"
@@ -123,6 +141,17 @@
     const liftCategoryWrapper = document.getElementById("lift-category-wrapper");
     const liftCategorySelect = document.getElementById("lift_category");
     const trackingTypeSelect = document.getElementById("tracking_type");
+    const dumbbellPairWrapper = document.getElementById("dumbbell-pair-wrapper");
+    const isDumbbellPairCheckbox = document.getElementById("is_dumbbell_pair");
+
+    function syncDumbbellPairVisibility() {
+        if (trackingTypeSelect.value === "weighted_reps") {
+            dumbbellPairWrapper.style.display = "block";
+        } else {
+            dumbbellPairWrapper.style.display = "none";
+            isDumbbellPairCheckbox.checked = false;
+        }
+    }
 
     function syncExerciseForm() {
         const activityCategory = activityCategorySelect.value;
@@ -145,9 +174,12 @@
                 trackingTypeSelect.value = "notes_only";
             }
         }
+
+        syncDumbbellPairVisibility();
     }
 
     activityCategorySelect.addEventListener("change", syncExerciseForm);
+    trackingTypeSelect.addEventListener("change", syncDumbbellPairVisibility);
     syncExerciseForm();
 </script>
 

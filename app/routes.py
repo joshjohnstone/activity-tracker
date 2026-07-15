@@ -8,11 +8,12 @@ from app.constants import (
     ACTIVITY_CATEGORIES,
     LIFT_CATEGORIES,
     TRACKING_TYPES,
+    TRACKING_TYPE_LABELS,
     DISPLAY_FIELDS_BY_TRACKING_TYPE,
     DISPLAY_FIELDS_BY_CATEGORY,
     DEFAULT_EXERCISES
 )
-from app.utils import parse_duration_to_seconds, abbreviate_distance_unit
+from app.utils import parse_duration_to_seconds, abbreviate_distance_unit, apply_dumbbell_pair_multiplier
 
 bp = Blueprint("main", __name__)
 
@@ -148,6 +149,7 @@ def submit():
         "activity_category": exercise_obj.activity_category,
         "lift_category": exercise_obj.lift_category,
         "tracking_type": exercise_obj.tracking_type,
+        "is_dumbbell_pair": exercise_obj.is_dumbbell_pair,
     }
 
     if tracking_type == "weighted_reps":
@@ -306,6 +308,9 @@ def last_activity(exercise_id):
 
     details = json.loads(activity.details)
 
+    if details.get("tracking_type") == "weighted_reps":
+        apply_dumbbell_pair_multiplier(details, exercise)
+
     return jsonify({
         "found": True,
         "exercise": exercise.name,
@@ -371,6 +376,9 @@ def history():
 
         tracking_type = details.get("tracking_type")
         row_exercise = row.exercise
+
+        if tracking_type == "weighted_reps":
+            apply_dumbbell_pair_multiplier(details, row_exercise)
 
         display_category = (
             details.get("activity_category")
@@ -840,6 +848,8 @@ def analytics():
         # Weighted strength volume applies only to weighted_reps activities.
         # Bodyweight reps, timed holds, etc. should eventually get separate metrics.
         if tracking_type == "weighted_reps":
+            apply_dumbbell_pair_multiplier(details, exercise_obj)
+
             exercise_set.add(exercise_name)
 
             sets_data = details.get("sets", [])
@@ -1029,15 +1039,6 @@ def exercises():
         .all()
     )
 
-    tracking_type_labels = {
-        "weighted_reps": "Weighted reps",
-        "bodyweight_reps": "Bodyweight reps",
-        "timed_hold": "Timed hold",
-        "duration_only": "Duration only",
-        "distance_duration": "Distance + duration",
-        "notes_only": "Notes only",
-    }
-
     exercise_items = []
 
     for exercise in exercises:
@@ -1076,7 +1077,8 @@ def exercises():
             "activity_category": activity_category,
             "lift_category": lift_category,
             "tracking_type": tracking_type,
-            "tracking_type_label": tracking_type_labels.get(tracking_type, tracking_type),
+            "tracking_type_label": TRACKING_TYPE_LABELS.get(tracking_type, tracking_type),
+            "is_dumbbell_pair": exercise.is_dumbbell_pair,
         })
 
     exercise_groups = []
@@ -1134,7 +1136,7 @@ def exercises():
         ACTIVITY_CATEGORIES=ACTIVITY_CATEGORIES,
         LIFT_CATEGORIES=LIFT_CATEGORIES,
         TRACKING_TYPES=TRACKING_TYPES,
-        tracking_type_labels=tracking_type_labels,
+        tracking_type_labels=TRACKING_TYPE_LABELS,
     )
 
 @bp.route("/add_exercise", methods=["POST"])
@@ -1145,12 +1147,14 @@ def add_exercise():
     activity_category = request.form.get("activity_category")
     lift_category = request.form.get("lift_category") or None
     tracking_type = request.form.get("tracking_type")
+    is_dumbbell_pair = "is_dumbbell_pair" in request.form
 
     exercise = Exercise(
         name=name,
         activity_category=activity_category,
         lift_category=lift_category,
         tracking_type=tracking_type,
+        is_dumbbell_pair=is_dumbbell_pair,
         user_id=current_user.id
     )
 
@@ -1158,6 +1162,36 @@ def add_exercise():
     db.session.commit()
 
     return redirect("/exercises")
+
+@bp.route("/edit_exercise/<int:id>", methods=["GET", "POST"])
+@login_required
+def edit_exercise(id):
+
+    exercise = Exercise.query.filter_by(
+        id=id,
+        user_id=current_user.id
+    ).first_or_404()
+
+    if request.method == "POST":
+        exercise.name = request.form.get("name")
+        exercise.activity_category = request.form.get("activity_category")
+        exercise.lift_category = request.form.get("lift_category") or None
+        exercise.tracking_type = request.form.get("tracking_type")
+        exercise.is_dumbbell_pair = "is_dumbbell_pair" in request.form
+
+        db.session.commit()
+
+        flash(f"{exercise.name} updated successfully.")
+        return redirect("/exercises")
+
+    return render_template(
+        "edit_exercise.html",
+        exercise=exercise,
+        ACTIVITY_CATEGORIES=ACTIVITY_CATEGORIES,
+        LIFT_CATEGORIES=LIFT_CATEGORIES,
+        TRACKING_TYPES=TRACKING_TYPES,
+        tracking_type_labels=TRACKING_TYPE_LABELS,
+    )
 
 @bp.route("/delete_exercise/<int:id>")
 @login_required

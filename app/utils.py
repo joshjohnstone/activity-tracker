@@ -34,6 +34,21 @@ def format_duration(seconds):
 
     return f"{minutes}:{remaining_seconds:02d}"
 
+def apply_dumbbell_pair_multiplier(details, exercise=None):
+    is_paired = details.get("is_dumbbell_pair")
+
+    if is_paired is None and exercise is not None:
+        is_paired = bool(exercise.is_dumbbell_pair)
+
+    if not is_paired:
+        return
+
+    for s in details.get("sets", []):
+        try:
+            s["weight"] = float(s.get("weight") or 0) * 2
+        except (TypeError, ValueError):
+            pass
+
 def parse_duration_to_seconds(value):
 
     if not value:

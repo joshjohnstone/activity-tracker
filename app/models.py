@@ -43,6 +43,13 @@ class Exercise(db.Model):
         server_default="weighted_reps"
     )
 
+    is_dumbbell_pair = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default="0"
+    )
+
     user_id = db.Column(
         db.Integer,
         db.ForeignKey("users.id"),
