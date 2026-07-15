@@ -22,6 +22,7 @@ def summarize_activity_details(details):
 
     if tracking_type == "weighted_reps":
         sets = details.get("sets", [])
+        notes = details.get("notes")
 
         parts = []
         for s in sets:
@@ -29,6 +30,9 @@ def summarize_activity_details(details):
             weight = s.get("weight")
             if reps or weight:
                 parts.append(f"{reps} reps × {weight} lbs")
+
+        if notes:
+            parts.append(f"Notes: {notes}")
 
         return parts
 
@@ -167,6 +171,7 @@ def submit():
                 })
 
         details["sets"] = sets
+        details["notes"] = form.get("notes")
 
     elif tracking_type == "bodyweight_reps":
 

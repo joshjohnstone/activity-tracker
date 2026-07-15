@@ -12,7 +12,7 @@ DISPLAY_FIELDS_BY_CATEGORY = {
 }
 
 DISPLAY_FIELDS_BY_TRACKING_TYPE = {
-    "weighted_reps": ["exercise", "tracking_type", "sets"],
+    "weighted_reps": ["exercise", "tracking_type", "sets", "notes"],
     "bodyweight_reps": ["exercise", "tracking_type", "sets"],
     "timed_hold": ["exercise", "tracking_type", "sets"],
     "duration_only": ["exercise", "tracking_type", "duration_seconds", "notes"],

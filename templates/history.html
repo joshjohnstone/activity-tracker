@@ -146,6 +146,12 @@
                                 {% endfor %}
                             </div>
 
+                            {% if entry.details.notes %}
+                                <div class="notes-entry">
+                                    {{ entry.details.notes }}
+                                </div>
+                            {% endif %}
+
                         {% elif entry.tracking_type == "bodyweight_reps" %}
 
                             <div class="set-list">

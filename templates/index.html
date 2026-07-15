@@ -107,6 +107,16 @@
             − Remove Last Set
         </button>
 
+        <div id="weighted-reps-notes-wrapper">
+            <label for="weighted_reps_notes">Notes (optional):</label>
+            <input
+                type="text"
+                id="weighted_reps_notes"
+                name="notes"
+                placeholder="e.g. very hard today"
+            >
+        </div>
+
     </div>
 
     <!-- DISTANCE + DURATION FIELDS -->
@@ -231,6 +241,9 @@ const removeSetBtn = document.getElementById("remove-set-btn");
 
 const dumbbellPairNotice = document.getElementById("dumbbell-pair-notice");
 
+const weightedRepsNotesWrapper = document.getElementById("weighted-reps-notes-wrapper");
+const weightedRepsNotesInput = document.getElementById("weighted_reps_notes");
+
 let currentTrackingType = null;
 
 function disableInputs(section) {
@@ -264,6 +277,17 @@ function updateDumbbellPairNotice() {
     const isDumbbellPair = selected && selected.dataset.isDumbbellPair === "true";
 
     dumbbellPairNotice.style.display = isDumbbellPair ? "block" : "none";
+}
+
+function updateWeightedRepsNotesVisibility(trackingType) {
+    if (trackingType === "weighted_reps") {
+        weightedRepsNotesWrapper.style.display = "block";
+        weightedRepsNotesInput.disabled = false;
+    } else {
+        weightedRepsNotesWrapper.style.display = "none";
+        weightedRepsNotesInput.disabled = true;
+        weightedRepsNotesInput.value = "";
+    }
 }
 
 function setRowHtml(setNumber, trackingType) {
@@ -377,6 +401,7 @@ function updateFormForTrackingType() {
     currentTrackingType = trackingType;
 
     updateDumbbellPairNotice();
+    updateWeightedRepsNotesVisibility(trackingType);
 }
 
 exerciseSelect.addEventListener("change", function() {
