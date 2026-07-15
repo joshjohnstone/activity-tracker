@@ -134,7 +134,7 @@ def create_app():
                 for exercise in existing_exercises
             }
 
-            for name, activity_category, lift_category, tracking_type in DEFAULT_EXERCISES:
+            for name, activity_category, lift_category, tracking_type, is_dumbbell_pair in DEFAULT_EXERCISES:
                 key = name.strip().lower()
 
                 existing = existing_by_name.get(key)
@@ -170,6 +170,7 @@ def create_app():
                             activity_category=activity_category,
                             lift_category=lift_category,
                             tracking_type=tracking_type,
+                            is_dumbbell_pair=is_dumbbell_pair,
                             category=lift_category,
                             user_id=user.id,
                         )

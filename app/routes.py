@@ -1226,13 +1226,14 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        for name, activity_category, lift_category, tracking_type in DEFAULT_EXERCISES:
+        for name, activity_category, lift_category, tracking_type, is_dumbbell_pair in DEFAULT_EXERCISES:
             db.session.add(
                 Exercise(
                     name=name,
                     activity_category=activity_category,
                     lift_category=lift_category,
                     tracking_type=tracking_type,
+                    is_dumbbell_pair=is_dumbbell_pair,
                     user_id=user.id
                 )
             )
