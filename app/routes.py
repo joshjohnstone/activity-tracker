@@ -1,7 +1,7 @@
 import json
 import math
 from datetime import date, datetime, timedelta
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models import db, User, Exercise, Activity
 from app.constants import (
@@ -113,11 +113,13 @@ def home():
     ) 
 
     return render_template(
-        "index.html", 
-        today=today, 
+        "index.html",
+        today=today,
         exercises=exercises,
         LIFT_CATEGORIES=LIFT_CATEGORIES,
-        ACTIVITY_CATEGORIES=ACTIVITY_CATEGORIES
+        ACTIVITY_CATEGORIES=ACTIVITY_CATEGORIES,
+        selected_activity_category=session.get("last_activity_category", "Strength"),
+        selected_lift_category=session.get("last_lift_category", "All")
     )
 
 @bp.route("/submit", methods=["POST"])
@@ -136,6 +138,9 @@ def submit():
 
     activity_category = exercise_obj.activity_category
     tracking_type = exercise_obj.tracking_type
+
+    session["last_activity_category"] = activity_category
+    session["last_lift_category"] = exercise_obj.lift_category or "All"
 
     details = {
         "exercise_id": exercise_obj.id,

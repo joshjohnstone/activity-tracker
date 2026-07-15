@@ -24,11 +24,11 @@
     <!-- ACTIVITY FILTERS -->
     <label for="activity-category-filter">Activity Category:</label>
     <select id="activity-category-filter">
-        <option value="All">All</option>
+        <option value="All" {% if selected_activity_category == "All" %}selected{% endif %}>All</option>
 
         {% for category in ACTIVITY_CATEGORIES %}
             <option value="{{ category }}"
-                    {% if category == "Strength" %}selected{% endif %}>
+                    {% if category == selected_activity_category %}selected{% endif %}>
                 {{ category }}
             </option>
         {% endfor %}
@@ -39,25 +39,17 @@
     <div id="lift-category-filter-wrapper">
         <label for="lift-category-filter">Lift Category:</label>
         <select id="lift-category-filter">
-            <option value="All">All</option>
+            <option value="All" {% if selected_lift_category == "All" %}selected{% endif %}>All</option>
 
             {% for category in LIFT_CATEGORIES %}
-                <option value="{{ category }}">
+                <option value="{{ category }}"
+                        {% if category == selected_lift_category %}selected{% endif %}>
                     {{ category }}
                 </option>
             {% endfor %}
         </select>
         <br><br>
     </div>
-
-    <label for="exercise-search">Search:</label>
-    <input
-        type="text"
-        id="exercise-search"
-        placeholder="Search activities..."
-    >
-
-    <br><br>
 
     <!-- ACTIVITY / EXERCISE TEMPLATE -->
     <label for="exercise">Activity:</label>
@@ -442,9 +434,6 @@ const activityCategoryFilter =
 const liftCategoryFilter =
     document.getElementById("lift-category-filter");
 
-const exerciseSearch =
-    document.getElementById("exercise-search");
-
 const allExerciseOptions =
     Array.from(exerciseSelect.options).map(option => ({
         value: option.value,
@@ -471,7 +460,6 @@ function rebuildExerciseDropdown() {
     updateLiftCategoryVisibility();
     const selectedActivityCategory = activityCategoryFilter.value;
     const selectedLiftCategory = liftCategoryFilter.value;
-    const searchText = exerciseSearch.value.toLowerCase().trim();
 
     const filtered = allExerciseOptions.filter(option => {
         const matchesActivityCategory =
@@ -482,14 +470,9 @@ function rebuildExerciseDropdown() {
             selectedLiftCategory === "All" ||
             option.liftCategory === selectedLiftCategory;
 
-        const matchesSearch =
-            !searchText ||
-            option.name.toLowerCase().includes(searchText);
-
         return (
             matchesActivityCategory &&
-            matchesLiftCategory &&
-            matchesSearch
+            matchesLiftCategory
         );
     });
 
@@ -525,7 +508,6 @@ activityCategoryFilter.addEventListener("change", function() {
 });
 
 liftCategoryFilter.addEventListener("change", rebuildExerciseDropdown);
-exerciseSearch.addEventListener("input", rebuildExerciseDropdown);
 
 rebuildExerciseDropdown();
 
