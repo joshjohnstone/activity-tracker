@@ -251,6 +251,20 @@ td {
     white-space: nowrap;
 }
 
+.exercise-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.edit-btn {
+    color: var(--link);
+    text-decoration: none;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
 .delete-btn {
     color: var(--danger-text);
     text-decoration: none;
@@ -267,7 +281,7 @@ td {
         margin-top: 0.15rem;
     }
 
-    .delete-btn {
+    .exercise-actions {
         padding-top: 0.15rem;
     }
 }

@@ -107,16 +107,18 @@
                                     </div>
                                 </div>
 
-                                <a class="edit-btn"
-                                   href="/edit_exercise/{{ exercise.id }}">
-                                    Edit
-                                </a>
+                                <div class="exercise-actions">
+                                    <a class="edit-btn"
+                                       href="/edit_exercise/{{ exercise.id }}">
+                                        Edit
+                                    </a>
 
-                                <a class="delete-btn"
-                                   href="/delete_exercise/{{ exercise.id }}"
-                                   onclick="return confirm('Delete this exercise?');">
-                                    Delete
-                                </a>
+                                    <a class="delete-btn"
+                                       href="/delete_exercise/{{ exercise.id }}"
+                                       onclick="return confirm('Delete this exercise?');">
+                                        Delete
+                                    </a>
+                                </div>
 
                             </li>
                         {% endfor %}
