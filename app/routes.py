@@ -13,7 +13,12 @@ from app.constants import (
     DISPLAY_FIELDS_BY_CATEGORY,
     DEFAULT_EXERCISES
 )
-from app.utils import parse_duration_to_seconds, abbreviate_distance_unit, apply_dumbbell_pair_multiplier
+from app.utils import (
+    parse_duration_to_seconds,
+    abbreviate_distance_unit,
+    apply_dumbbell_pair_multiplier,
+    get_period_bounds,
+)
 
 bp = Blueprint("main", __name__)
 
@@ -1032,6 +1037,172 @@ def analytics():
         prs_by_exercise_id=prs_by_exercise_id,
 
         LIFT_CATEGORIES=LIFT_CATEGORIES
+    )
+
+@bp.route("/insights")
+@login_required
+def insights():
+
+    period = request.args.get("period", "week")
+    if period not in ("week", "month", "year"):
+        period = "week"
+
+    try:
+        offset = int(request.args.get("offset", 0))
+    except (TypeError, ValueError):
+        offset = 0
+
+    offset = max(offset, 0)
+
+    start_date, end_date, label = get_period_bounds(period, offset)
+
+    today = date.today()
+    effective_end = min(end_date, today)
+
+    rows = (
+        Activity.query
+        .filter_by(user_id=current_user.id)
+        .filter(Activity.date >= start_date.isoformat())
+        .filter(Activity.date <= end_date.isoformat())
+        .order_by(Activity.date.asc(), Activity.id.asc())
+        .all()
+    )
+
+    user_exercises = Exercise.query.filter_by(user_id=current_user.id).all()
+    exercise_lookup = {exercise.id: exercise for exercise in user_exercises}
+
+    category_counts = {category: 0 for category in ACTIVITY_CATEGORIES}
+    active_dates = set()
+    lift_category_volume = {}
+    sessions_by_exercise_id = {}
+    exercise_names_by_id = {}
+
+    for row in rows:
+        try:
+            details = json.loads(row.details or "{}")
+        except json.JSONDecodeError:
+            details = {}
+
+        exercise_obj = exercise_lookup.get(row.exercise_id)
+
+        try:
+            activity_date = datetime.strptime(row.date, "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            activity_date = None
+
+        if activity_date:
+            active_dates.add(activity_date)
+
+        raw_category = (
+            exercise_obj.activity_category
+            if exercise_obj and exercise_obj.activity_category
+            else details.get("activity_category") or row.category
+        )
+
+        if raw_category == "Running":
+            raw_category = "Cardio"
+
+        activity_category = raw_category if raw_category in ACTIVITY_CATEGORIES else "Other"
+
+        category_counts.setdefault(activity_category, 0)
+        category_counts[activity_category] += 1
+
+        tracking_type = (
+            exercise_obj.tracking_type
+            if exercise_obj and exercise_obj.tracking_type
+            else details.get("tracking_type")
+        )
+
+        if tracking_type == "weighted_reps":
+            apply_dumbbell_pair_multiplier(details, exercise_obj)
+
+            session_volume = 0
+
+            for s in details.get("sets", []):
+                try:
+                    reps = int(s.get("reps") or 0)
+                    weight = float(s.get("weight") or 0)
+                except (TypeError, ValueError, AttributeError):
+                    continue
+
+                session_volume += reps * weight
+
+            lift_category = (
+                exercise_obj.lift_category
+                if exercise_obj and exercise_obj.lift_category
+                else details.get("lift_category")
+            ) or "Uncategorized"
+
+            lift_category_volume.setdefault(lift_category, 0)
+            lift_category_volume[lift_category] += session_volume
+
+            if exercise_obj and activity_date:
+                exercise_names_by_id[exercise_obj.id] = exercise_obj.name
+
+                sessions_by_exercise_id.setdefault(exercise_obj.id, [])
+                sessions_by_exercise_id[exercise_obj.id].append({
+                    "date": activity_date,
+                    "volume": session_volume,
+                })
+
+    total_activities = sum(category_counts.values())
+
+    total_days_in_period = max((effective_end - start_date).days + 1, 1)
+    percent_days_logged = (len(active_dates) / total_days_in_period) * 100
+
+    candidates = []
+
+    for exercise_id, sessions in sessions_by_exercise_id.items():
+        if len(sessions) < 3:
+            continue
+
+        first_volume = sessions[0]["volume"]
+        last_volume = sessions[-1]["volume"]
+
+        candidates.append({
+            "exercise_name": exercise_names_by_id.get(exercise_id, "Unknown"),
+            "first_volume": first_volume,
+            "last_volume": last_volume,
+            "first_date": sessions[0]["date"].isoformat(),
+            "last_date": sessions[-1]["date"].isoformat(),
+            "delta": last_volume - first_volume,
+        })
+
+    most_improved = None
+    least_improved = None
+
+    if len(candidates) >= 2:
+        most_improved = max(candidates, key=lambda c: c["delta"])
+        least_improved = min(candidates, key=lambda c: c["delta"])
+
+    lift_category_order = {category: i for i, category in enumerate(LIFT_CATEGORIES)}
+    sorted_lift_category_volume = dict(
+        sorted(
+            lift_category_volume.items(),
+            key=lambda item: lift_category_order.get(item[0], len(LIFT_CATEGORIES))
+        )
+    )
+
+    return render_template(
+        "insights.html",
+        period=period,
+        offset=offset,
+        label=label,
+        prev_offset=offset + 1,
+        next_offset=max(offset - 1, 0),
+        has_next=offset > 0,
+
+        total_activities=total_activities,
+        category_counts=category_counts,
+
+        percent_days_logged=percent_days_logged,
+        active_day_count=len(active_dates),
+        total_days_in_period=total_days_in_period,
+
+        lift_category_volume=sorted_lift_category_volume,
+
+        most_improved=most_improved,
+        least_improved=least_improved,
     )
 
 @bp.route("/exercises")

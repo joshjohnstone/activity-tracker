@@ -1,3 +1,6 @@
+import calendar
+from datetime import date, timedelta
+
 DISTANCE_UNIT_ABBREVIATIONS = {
     "miles": "mi",
     "meters": "m",
@@ -48,6 +51,42 @@ def apply_dumbbell_pair_multiplier(details, exercise=None):
             s["weight"] = float(s.get("weight") or 0) * 2
         except (TypeError, ValueError):
             pass
+
+def get_period_bounds(period_type, offset, today=None):
+    """
+    Returns (start_date, end_date, label) for the given period_type
+    ("week", "month", or "year"), stepped back by offset whole periods
+    (0 = current period, 1 = previous, etc).
+    """
+    if today is None:
+        today = date.today()
+
+    if period_type == "week":
+        days_since_sunday = (today.weekday() + 1) % 7
+        current_week_start = today - timedelta(days=days_since_sunday)
+        start_date = current_week_start - timedelta(weeks=offset)
+        end_date = start_date + timedelta(days=6)
+        label = f"{start_date.strftime('%b %d')} – {end_date.strftime('%b %d, %Y')}"
+
+    elif period_type == "month":
+        total_months = today.year * 12 + (today.month - 1) - offset
+        year, month0 = divmod(total_months, 12)
+        month = month0 + 1
+
+        start_date = date(year, month, 1)
+        end_date = date(year, month, calendar.monthrange(year, month)[1])
+        label = start_date.strftime("%B %Y")
+
+    elif period_type == "year":
+        year = today.year - offset
+        start_date = date(year, 1, 1)
+        end_date = date(year, 12, 31)
+        label = str(year)
+
+    else:
+        raise ValueError(f"Unknown period_type: {period_type}")
+
+    return start_date, end_date, label
 
 def parse_duration_to_seconds(value):
 

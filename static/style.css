@@ -696,6 +696,15 @@ td {
     cursor: default;
 }
 
+.pagination-active {
+    background: var(--link);
+    color: var(--bg);
+}
+
+.pagination-active:hover {
+    background: var(--link);
+}
+
 .pagination-status {
     color: var(--text-muted);
     font-size: 0.9rem;

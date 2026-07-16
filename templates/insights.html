@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Insights</h1>
+
+<div class="nav">
+    <a href="/">Log Activity</a>
+    <a href="/history">History</a>
+    <a href="/analytics">Analytics</a>
+    <a href="/insights">Insights</a>
+    <a href="/exercises">Exercises</a>
+</div>
+
+<hr>
+
+<div class="pagination">
+    <a class="pagination-link {% if period == 'week' %}pagination-active{% endif %}"
+       href="{{ url_for('main.insights', period='week', offset=0) }}">
+        Week
+    </a>
+    <a class="pagination-link {% if period == 'month' %}pagination-active{% endif %}"
+       href="{{ url_for('main.insights', period='month', offset=0) }}">
+        Month
+    </a>
+    <a class="pagination-link {% if period == 'year' %}pagination-active{% endif %}"
+       href="{{ url_for('main.insights', period='year', offset=0) }}">
+        Year
+    </a>
+</div>
+
+<div class="pagination">
+    <a class="pagination-link" href="{{ url_for('main.insights', period=period, offset=prev_offset) }}">
+        ← Previous
+    </a>
+
+    <span class="pagination-status">
+        {{ label }}
+    </span>
+
+    {% if has_next %}
+        <a class="pagination-link" href="{{ url_for('main.insights', period=period, offset=next_offset) }}">
+            Next →
+        </a>
+    {% else %}
+        <span class="pagination-link pagination-disabled">
+            Next →
+        </span>
+    {% endif %}
+</div>
+
+<hr>
+
+<section class="analytics-section">
+
+    <div class="analytics-card">
+        <h2>Activities Logged</h2>
+
+        <div class="big-number">
+            {{ total_activities }}
+        </div>
+
+        <div class="category-breakdown">
+            {% for category, count in category_counts.items() %}
+                {% if count > 0 %}
+                    <span class="exercise-badge">
+                        {{ category }}: {{ count }}
+                    </span>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="analytics-card">
+        <h2>Consistency</h2>
+
+        <div class="big-number">
+            {{ "{:.0f}".format(percent_days_logged) }}%
+        </div>
+
+        <p class="helper-text">
+            {{ active_day_count }} of {{ total_days_in_period }} days logged
+        </p>
+    </div>
+
+</section>
+
+<hr>
+
+<section class="analytics-section">
+
+    <div class="analytics-card">
+        <h2>Strength Volume by Lift Category</h2>
+
+        {% if lift_category_volume %}
+            <div class="chart-container">
+                <canvas id="lift-category-volume-chart"></canvas>
+            </div>
+        {% else %}
+            <p class="helper-text">
+                No weighted volume recorded this period.
+            </p>
+        {% endif %}
+    </div>
+
+</section>
+
+<hr>
+
+<section class="analytics-section">
+
+    <div class="analytics-card">
+        <h2>Most Improved</h2>
+
+        {% if most_improved %}
+            <div class="big-number">
+                {{ most_improved.exercise_name }}
+            </div>
+
+            <p class="helper-text">
+                {{ "{:,.0f}".format(most_improved.first_volume) }} lbs ({{ most_improved.first_date }})
+                →
+                {{ "{:,.0f}".format(most_improved.last_volume) }} lbs ({{ most_improved.last_date }})
+            </p>
+
+            <p class="helper-text">
+                {% if most_improved.delta >= 0 %}+{% endif %}{{ "{:,.0f}".format(most_improved.delta) }} lbs
+            </p>
+        {% else %}
+            <p class="helper-text">
+                Not enough data yet. An exercise needs at least 3 logged sessions in this period.
+            </p>
+        {% endif %}
+    </div>
+
+    <div class="analytics-card">
+        <h2>Least Improved</h2>
+
+        {% if least_improved %}
+            <div class="big-number">
+                {{ least_improved.exercise_name }}
+            </div>
+
+            <p class="helper-text">
+                {{ "{:,.0f}".format(least_improved.first_volume) }} lbs ({{ least_improved.first_date }})
+                →
+                {{ "{:,.0f}".format(least_improved.last_volume) }} lbs ({{ least_improved.last_date }})
+            </p>
+
+            <p class="helper-text">
+                {% if least_improved.delta >= 0 %}+{% endif %}{{ "{:,.0f}".format(least_improved.delta) }} lbs
+            </p>
+        {% else %}
+            <p class="helper-text">
+                Not enough data yet. At least 2 exercises need 3+ logged sessions in this period.
+            </p>
+        {% endif %}
+    </div>
+
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+const liftCategoryVolume = {{ lift_category_volume | tojson }};
+
+function getCssVariable(name) {
+    return getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim();
+}
+
+const chartTextColor = getCssVariable("--text-muted");
+const chartGridColor = getCssVariable("--border-soft");
+
+const liftCategoryCanvas = document.getElementById("lift-category-volume-chart");
+
+if (liftCategoryCanvas) {
+    const labels = Object.keys(liftCategoryVolume);
+    const values = Object.values(liftCategoryVolume);
+
+    new Chart(liftCategoryCanvas, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Volume, lbs",
+                data: values,
+                backgroundColor: getCssVariable("--link")
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: chartGridColor
+                    },
+                    ticks: {
+                        color: chartTextColor,
+                        callback: function(value) {
+                            return Math.round(value).toLocaleString();
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        color: chartGridColor
+                    },
+                    ticks: {
+                        color: chartTextColor
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${Math.round(context.parsed.y).toLocaleString()} lbs`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+</script>
+
+{% endblock %}
