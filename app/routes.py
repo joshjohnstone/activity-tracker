@@ -130,7 +130,8 @@ def home():
         LIFT_CATEGORIES=LIFT_CATEGORIES,
         ACTIVITY_CATEGORIES=ACTIVITY_CATEGORIES,
         selected_activity_category=session.get("last_activity_category", "Strength"),
-        selected_lift_category=session.get("last_lift_category", "All")
+        selected_lift_category=session.get("last_lift_category", "All"),
+        selected_exercise_id=session.get("last_exercise_id")
     )
 
 @bp.route("/submit", methods=["POST"])
@@ -152,6 +153,7 @@ def submit():
 
     session["last_activity_category"] = activity_category
     session["last_lift_category"] = exercise_obj.lift_category or "All"
+    session["last_exercise_id"] = exercise_obj.id
 
     details = {
         "exercise_id": exercise_obj.id,

@@ -65,6 +65,7 @@
                 data-lift-category="{{ exercise.lift_category or '' }}"
                 data-tracking-type="{{ exercise.tracking_type }}"
                 data-is-dumbbell-pair="{{ exercise.is_dumbbell_pair|lower }}"
+                {% if selected_exercise_id and selected_exercise_id|string == exercise.id|string %}selected{% endif %}
             >
                 {{ exercise.name }}
             </option>
@@ -427,8 +428,6 @@ removeSetBtn.addEventListener("click", function() {
     updateSetButtons();
 });
 
-updateFormForTrackingType();
-
 const lastActivityMessage = document.getElementById("last-activity-message");
 const lastActivitySummary = document.getElementById("last-activity-summary");
 
@@ -468,8 +467,6 @@ function updateLastActivityCard() {
         });
 }
 
-updateLastActivityCard()
-
 const activityCategoryFilter =
     document.getElementById("activity-category-filter");
 
@@ -503,6 +500,7 @@ function rebuildExerciseDropdown() {
     updateLiftCategoryVisibility();
     const selectedActivityCategory = activityCategoryFilter.value;
     const selectedLiftCategory = liftCategoryFilter.value;
+    const currentExerciseId = exerciseSelect.value;
 
     const filtered = allExerciseOptions.filter(option => {
         const matchesActivityCategory =
@@ -536,11 +534,16 @@ function rebuildExerciseDropdown() {
         exerciseSelect.appendChild(option);
     });
 
-    if (filtered.length > 0) {
-        exerciseSelect.selectedIndex = 0;
-        updateFormForTrackingType();
-        updateLastActivityCard();
+    if (filtered.length === 0) {
+        return;
     }
+
+    const stillAvailable = filtered.some(option => option.value === currentExerciseId);
+
+    exerciseSelect.value = stillAvailable ? currentExerciseId : filtered[0].value;
+
+    updateFormForTrackingType();
+    updateLastActivityCard();
 }
 
 activityCategoryFilter.addEventListener("change", function() {
