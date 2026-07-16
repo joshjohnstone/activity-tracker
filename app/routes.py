@@ -18,6 +18,7 @@ from app.utils import (
     abbreviate_distance_unit,
     apply_dumbbell_pair_multiplier,
     get_period_bounds,
+    get_today,
 )
 
 bp = Blueprint("main", __name__)
@@ -110,7 +111,7 @@ def summarize_activity_details(details):
 @bp.route("/")
 @login_required
 def home():
-    today = date.today().isoformat()
+    today = get_today().isoformat()
 
     exercises = (
         Exercise.query
@@ -550,7 +551,7 @@ def analytics():
     recent_sessions_by_exercise_id = {}
     prs_by_exercise_id = {}
 
-    today = datetime.today().date()
+    today = get_today()
 
     # Python weekday: Monday=0 ... Sunday=6
     days_since_sunday = (today.weekday() + 1) % 7
@@ -1056,7 +1057,7 @@ def insights():
 
     start_date, end_date, label = get_period_bounds(period, offset)
 
-    today = date.today()
+    today = get_today()
     effective_end = min(end_date, today)
 
     rows = (

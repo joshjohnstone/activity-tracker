@@ -1,5 +1,16 @@
 import calendar
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
+
+APP_TIMEZONE = ZoneInfo("America/New_York")
+
+def get_today():
+    """
+    "Today" in the app's configured timezone, not the server's local/UTC clock.
+    Render's server clock runs in UTC, which can disagree with the local
+    calendar date for hours around midnight UTC.
+    """
+    return datetime.now(APP_TIMEZONE).date()
 
 DISTANCE_UNIT_ABBREVIATIONS = {
     "miles": "mi",
@@ -59,7 +70,7 @@ def get_period_bounds(period_type, offset, today=None):
     (0 = current period, 1 = previous, etc).
     """
     if today is None:
-        today = date.today()
+        today = get_today()
 
     if period_type == "week":
         days_since_sunday = (today.weekday() + 1) % 7
